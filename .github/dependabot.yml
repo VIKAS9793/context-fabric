@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # Maintain pinned dependencies for context-fabric
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    # Note: version pinning rules apply (MCP SDK 1.27.1, better-sqlite3 12.8.0)
+    # Manual review is required for these upgrades.
+    
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

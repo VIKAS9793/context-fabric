@@ -1,0 +1,17 @@
+# GitHub Repository Ownership
+# 
+# Patterns ordered by precedence (later matches override earlier ones)
+
+# Default to maintainer
+*       @vikas9793
+
+# Security and Infrastructure
+/src/security/  @vikas9793
+/src/db/        @vikas9793
+
+# Core Engines
+/src/engines/   @vikas9793
+
+# Dependency Management
+/package.json   @vikas9793
+/package-lock.json @vikas9793

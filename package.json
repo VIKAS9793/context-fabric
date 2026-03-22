@@ -1,0 +1,36 @@
+{
+  "name": "context-fabric",
+  "version": "0.1.0",
+  "description": "AI project continuity infrastructure — context drift detection",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0 <25.0.0"
+  },
+  "bin": {
+    "context-fabric": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "scripts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint src/**",
+    "ci:check": "npm ci && npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.27.1",
+    "better-sqlite3": "12.8.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22",
+    "eslint": "^9.39.4",
+    "typescript": "^5.5.0",
+    "typescript-eslint": "^8.57.1"
+  }
+}

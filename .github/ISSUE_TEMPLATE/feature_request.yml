@@ -1,0 +1,38 @@
+name: Feature Request
+description: Propose a new feature for Context Fabric
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please explain the problem you are solving and the proposed solution.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The Problem
+      description: What friction or limitation are you facing?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the ideal outcome.
+    validations:
+      required: true
+  - type: dropdown
+    id: engine
+    attributes:
+      label: Affected Engine (if known)
+      options:
+        - Watcher (E1)
+        - Anchor (E2)
+        - Router (E3)
+        - Governor (E4)
+        - Weaver (E5)
+        - CLI / Tool Layer
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Are there other ways to solve this?
