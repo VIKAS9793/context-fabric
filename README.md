@@ -12,6 +12,10 @@
 [![MCP SDK](https://img.shields.io/badge/MCP_SDK-1.27.1-7c3aed?labelColor=0d1117)](https://modelcontextprotocol.io)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5%2B-3178c6?labelColor=0d1117)](https://typescriptlang.org)
 
+> [!IMPORTANT]
+> **Context Fabric is currently in Public Beta.** 
+> It is not yet published to the npm registry or official MCP stores. During this initial feedback phase, please use the **Local Installation** method described below to test and provide feedback via [GitHub Issues](https://github.com/VIKAS9793/context-fabric/issues).
+
 **AI project continuity infrastructure for MCP-compatible coding tools.**
 
 Context Fabric is an MCP server that automatically captures project state on every git commit, detects when stored context has drifted from codebase reality, and delivers structured, token-budgeted briefings to AI agents — without requiring any developer action.
