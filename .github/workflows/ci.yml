@@ -15,7 +15,7 @@ jobs:
         # Skip Node 25 as better-sqlite3 native binaries are not yet compatible
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
