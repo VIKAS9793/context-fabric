@@ -1,0 +1,9 @@
+﻿# Normalise all text files to LF on commit
+* text=auto eol=lf
+
+# Shell scripts must always be LF — chmod depends on it
+*.sh text eol=lf
+
+# Windows-only files keep CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf

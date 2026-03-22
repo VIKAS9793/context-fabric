@@ -52,17 +52,22 @@ function getTokenEstimate(content: string): number {
 
 function getChangedFiles(projectRoot: string): string[] {
   try {
+    // Normal case — diff against previous commit
     const result = execSync('git diff --name-only HEAD~1 HEAD', {
       cwd: projectRoot, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
     });
     return result.trim().split('\n').filter(Boolean);
   } catch {
+    // First commit — HEAD~1 does not exist
+    // Use git show to list files in the current (first) commit
     try {
-      const result = execSync('git diff --name-only --cached', {
+      const result = execSync('git show --name-only --format="" HEAD', {
         cwd: projectRoot, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
       });
       return result.trim().split('\n').filter(Boolean);
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   }
 }
 

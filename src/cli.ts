@@ -2,7 +2,7 @@
 // src/cli.ts
 // Context Fabric CLI — Entry point for repo init and capture.
 
-import { runWatcher, getGitSha } from './engines/watcher.js';
+import { runWatcher } from './engines/watcher.js';
 import { computeDrift } from './engines/anchor.js';
 import { routeQuery, defaultRouterQuery } from './engines/router.js';
 import { selectWithinBudget } from './engines/governor.js';
@@ -31,7 +31,6 @@ async function run() {
       const cfDir = resolve(projectRoot, '.context-fabric');
       if (!existsSync(cfDir)) mkdirSync(cfDir);
 
-      const dbPath = resolve(cfDir, 'cf.db');
       console.log(`  ✓ Database initialised: .context-fabric/cf.db`);
 
       const hookPath = resolve(projectRoot, '.git/hooks/post-commit');
@@ -98,7 +97,6 @@ async function run() {
 
     case 'query': {
       const queryText = process.argv[3] || '';
-      const gitSha = getGitSha(projectRoot);
       const snapshot = loadSnapshot(db);
       const decisions = loadDecisions(db);
       const drift = computeDrift(db, projectRoot);
