@@ -1,6 +1,6 @@
 {
   "name": "context-fabric",
-  "version": "0.1.0",
+  "version": "0.1.0-beta.1",
   "description": "AI project continuity infrastructure — context drift detection",
   "type": "module",
   "engines": {
@@ -11,7 +11,9 @@
   },
   "main": "dist/index.js",
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc",
