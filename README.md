@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/VIKAS9793/context-fabric/main/assets/banner.png" alt="Context Fabric Banner" width="800">
+</p>
+
 # Context Fabric
 
 [![npm version](https://img.shields.io/npm/v/context-fabric?color=0ea5e9&labelColor=0d1117)](https://npmjs.com/package/context-fabric)
