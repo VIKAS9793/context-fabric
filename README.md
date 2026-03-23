@@ -21,7 +21,7 @@ Context Fabric is configured for official inclusion in the **Model Context Proto
 - **Metadata**: [server.json](server.json)
 - **Deployment**: Fully automated via GitHub Actions + OIDC for verifiable publishing.
 
-**AI project continuity infrastructure for MCP-compatible coding tools.**
+The context synchronization layer for AI coding agents. Ensure project continuity, eliminate agent memory drift, and manage token budgets automatically across any coding session.
 
 Context Fabric is an MCP server that automatically captures project state on every git commit, detects when stored context has drifted from codebase reality, and delivers structured, token-budgeted briefings to AI agents — without requiring any developer action.
 
