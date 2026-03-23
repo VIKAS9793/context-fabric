@@ -3,7 +3,7 @@
   "name": "io.github.VIKAS9793/context-fabric",
   "title": "Context Fabric",
   "description": "Project continuity infrastructure. Detects context drift and routes token-budgeted AI briefings.",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "repository": {
     "url": "https://github.com/VIKAS9793/context-fabric",
     "source": "github"
