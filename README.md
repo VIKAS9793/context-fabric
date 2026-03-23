@@ -6,17 +6,19 @@
 
 [![npm version](https://img.shields.io/npm/v/context-fabric?color=0ea5e9&labelColor=0d1117)](https://npmjs.com/package/context-fabric)
 [![CI](https://img.shields.io/github/actions/workflow/status/VIKAS9793/context-fabric/ci.yml?branch=main&color=10b981&labelColor=0d1117&label=CI)](https://github.com/VIKAS9793/context-fabric/actions)
-[![Status: Beta](https://img.shields.io/badge/status-beta-ff69b4?labelColor=0d1117)](https://github.com/VIKAS9793/context-fabric/issues)
+[![Status: Stable](https://img.shields.io/badge/status-stable-10b981?labelColor=0d1117)](https://github.com/VIKAS9793/context-fabric)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?labelColor=0d1117)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D22.0.0_--_24.x-brightgreen?labelColor=0d1117)](https://nodejs.org)
 [![MCP SDK](https://img.shields.io/badge/MCP_SDK-1.27.1-7c3aed?labelColor=0d1117)](https://modelcontextprotocol.io)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5%2B-3178c6?labelColor=0d1117)](https://typescriptlang.org)
 
-> [!IMPORTANT]
-> **NPM USERS: PLEASE READ BEFORE INSTALLING**
-> This npm package is currently used for **name reservation** and initial beta testing only. The automated `npm install -g context-fabric` distribution is not yet established.
-> 
-> For the current functional **Public Beta**, please use the **Local Installation** method (git clone + npm link) as described in the [Getting Started](#installation) section of the GitHub repository: https://github.com/VIKAS9793/context-fabric
+---
+
+### **Official Registry Support**
+Context Fabric is configured for official inclusion in the **Model Context Protocol (MCP) Registry**. 
+- **Namespace**: `io.github.VIKAS9793/context-fabric`
+- **Metadata**: [server.json](server.json)
+- **Deployment**: Fully automated via GitHub Actions + OIDC for verifiable publishing.
 
 **AI project continuity infrastructure for MCP-compatible coding tools.**
 

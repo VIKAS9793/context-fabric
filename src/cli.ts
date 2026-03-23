@@ -105,7 +105,9 @@ async function run() {
       const decisions = loadDecisions(db);
       const drift = computeDrift(db, projectRoot);
       
-      const routerQuery = { ...defaultRouterQuery, text: queryText, limit: 25 };
+      // CF-BU-05 FIX: defaultRouterQuery is a function, not an object.
+      // Spreading a function produces {} — call it with the query text instead.
+      const routerQuery = defaultRouterQuery(queryText);
       const result = routeQuery(db, routerQuery);
       const budget = selectWithinBudget(result.ranked, { model: 'default', budget_pct: 0.1 });
       

@@ -117,8 +117,13 @@ export function composeBriefing(input: WeaverInput): WeaverOutput {
     for (const comp of budget.selected.slice(0, LIMITS.MAX_COMPONENTS)) {
       const sp = safePath(comp.path);
       const exStr = safeExports(comp.exports);
-      const exportSuffix = exStr ? ` — exports: ${exStr}` : '';
-      lines.push(`- \`${sp}\`${exportSuffix}`);
+      // Prefer file_summary (developer-authored @fileoverview) over raw export lists
+      const summary = comp.file_summary
+        ? ` — ${comp.file_summary.replace(/[<>]/g, '').slice(0, 200)}`
+        : exStr
+          ? ` — exports: ${exStr}`
+          : '';
+      lines.push(`- \`${sp}\`${summary}`);
     }
     lines.push('');
   }

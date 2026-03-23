@@ -1,7 +1,27 @@
 {
   "name": "context-fabric",
-  "version": "0.1.0-beta.2",
+  "version": "1.0.0",
+  "mcpName": "io.github.VIKAS9793/context-fabric",
   "description": "AI project continuity infrastructure — context drift detection",
+  "author": "Vikas Sahani",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VIKAS9793/context-fabric.git"
+  },
+  "bugs": {
+    "url": "https://github.com/VIKAS9793/context-fabric/issues"
+  },
+  "homepage": "https://github.com/VIKAS9793/context-fabric#readme",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "context-drift",
+    "git-hooks",
+    "ai-developer-tools",
+    "sqlite-fts5",
+    "cadre"
+  ],
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <25.0.0"
@@ -12,14 +32,21 @@
   "main": "dist/index.js",
   "files": [
     "dist",
+    "src",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "server.json",
+    "glama.json",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "lint": "eslint src/**",
-    "ci:check": "npm ci && npm run build"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:cov": "vitest run --coverage",
+    "ci:check": "npm ci && npm run build && npm test"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.27.1",
@@ -30,8 +57,10 @@
     "@eslint/js": "^9.21.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22",
+    "@vitest/coverage-v8": "^4.1.0",
     "eslint": "^9.39.4",
     "typescript": "^5.5.0",
-    "typescript-eslint": "^8.57.1"
+    "typescript-eslint": "^8.57.1",
+    "vitest": "^4.1.0"
   }
 }

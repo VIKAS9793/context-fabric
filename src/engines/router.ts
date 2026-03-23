@@ -42,6 +42,9 @@ import type { RouterQuery, RouterResult, RankedComponent } from '../types.js';
 
 // ─── FTS5 QUERY SANITISER ─────────────────────────────────────────────────
 
+// FTS5 boolean operators — must be stripped, not treated as search terms
+const FTS5_RESERVED = new Set(['OR', 'AND', 'NOT']);
+
 function sanitiseFtsQuery(raw: string): string {
   // Step 1: strip FTS5 special characters
   const stripped = raw
@@ -51,16 +54,13 @@ function sanitiseFtsQuery(raw: string): string {
 
   if (!stripped) return '';
 
-  // Step 2: split into tokens, filter empties, enforce min length
-  const tokens = stripped
+  // Step 2: split into tokens, filter empties, enforce min length,
+  //         and strip FTS5 reserved boolean words (OR, AND, NOT)
+  return stripped
     .split(' ')
     .map(t => t.trim())
-    .filter(t => t.length >= 2);      // FTS5 skips tokens < 2 chars anyway
-
-  if (tokens.length === 0) return '';
-
-  // Step 3: append * for prefix matching
-  return tokens
+    .filter(t => t.length >= 2)        // FTS5 skips tokens < 2 chars anyway
+    .filter(t => !FTS5_RESERVED.has(t.toUpperCase()))  // strip OR, AND, NOT
     .slice(0, 10)
     .map(t => `${t}*`)
     .join(' ');
@@ -73,24 +73,26 @@ function fetchByRecency(
   limit: number,
 ): RankedComponent[] {
   const rows = db.prepare(`
-    SELECT id, path, exports, comp_type, token_est,
+    SELECT id, path, exports, file_summary, comp_type, token_est,
            captured_at
     FROM cf_components
     ORDER BY captured_at DESC
     LIMIT ?
   `).all(limit) as {
     id: number; path: string; exports: string | null;
+    file_summary: string | null;
     comp_type: string; token_est: number; captured_at: number;
   }[];
 
   return rows.map((row, i) => ({
-    id:         row.id,
-    path:       row.path,
-    exports:    row.exports,
-    comp_type:  row.comp_type,
-    token_est:  row.token_est,
-    bm25_score: 0,      // no BM25 score in fallback
-    rank:       i + 1,
+    id:           row.id,
+    path:         row.path,
+    exports:      row.exports,
+    file_summary: row.file_summary,
+    comp_type:    row.comp_type,
+    token_est:    row.token_est,
+    bm25_score:   0,      // no BM25 score in fallback
+    rank:         i + 1,
   }));
 }
 
@@ -115,6 +117,7 @@ export function routeQuery(
 
   let rows: {
     id: number; path: string; exports: string | null;
+    file_summary: string | null;
     comp_type: string; token_est: number; bm25_score: number;
   }[];
 
@@ -124,6 +127,7 @@ export function routeQuery(
         c.id,
         c.path,
         c.exports,
+        c.file_summary,
         c.comp_type,
         c.token_est,
         bm25(cf_search, 2.0, 1.0) AS bm25_score
@@ -134,6 +138,7 @@ export function routeQuery(
       LIMIT ?
     `).all(sanitised, limit) as {
       id: number; path: string; exports: string | null;
+      file_summary: string | null;
       comp_type: string; token_est: number; bm25_score: number;
     }[];
   } catch (err) {
@@ -158,13 +163,14 @@ export function routeQuery(
   }
 
   const ranked: RankedComponent[] = rows.map((row, i) => ({
-    id:         row.id,
-    path:       row.path,
-    exports:    row.exports,
-    comp_type:  row.comp_type,
-    token_est:  row.token_est,
-    bm25_score: row.bm25_score,
-    rank:       i + 1,
+    id:           row.id,
+    path:         row.path,
+    exports:      row.exports,
+    file_summary: row.file_summary,
+    comp_type:    row.comp_type,
+    token_est:    row.token_est,
+    bm25_score:   row.bm25_score,
+    rank:         i + 1,
   }));
 
   return {

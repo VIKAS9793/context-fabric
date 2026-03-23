@@ -39,3 +39,9 @@ jobs:
         node dist/cli.js init
         # Verify db file creation (standard location)
         ls -la .context-fabric/cf.db
+
+    - name: Run tests
+      run: npm test
+
+    - name: Check coverage thresholds
+      run: npm run test:cov -- --coverage.thresholds.lines=70

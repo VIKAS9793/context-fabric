@@ -3,15 +3,23 @@
 # Patterns ordered by precedence (later matches override earlier ones)
 
 # Default to maintainer
-*       @vikas9793
+*       @VIKAS9793
 
-# Security and Infrastructure
-/src/security/  @vikas9793
-/src/db/        @vikas9793
+# Security, Database and Infrastructure
+/src/security/  @VIKAS9793
+/src/db/        @VIKAS9793
 
 # Core Engines
-/src/engines/   @vikas9793
+/src/engines/   @VIKAS9793
+
+# MCP Metadata
+/server.json    @VIKAS9793
+/glama.json     @VIKAS9793
+
+# CI/CD and GitHub Infrastructure
+/.github/workflows/ @VIKAS9793
+/.github/CODEOWNERS @VIKAS9793
 
 # Dependency Management
-/package.json   @vikas9793
-/package-lock.json @vikas9793
+/package.json   @VIKAS9793
+/package-lock.json @VIKAS9793

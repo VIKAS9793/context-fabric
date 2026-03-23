@@ -7,18 +7,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
-## [Unreleased]
-
-### Fixed
-- CF-BU-01: Missing `await` on `loadSnapshot` and `loadDecisions` in `cf_query` handler (`index.ts`).
-- CF-BU-02: FTS5 `ORDER BY` alias failure on Windows — replaced `bm25_score` alias with direct `bm25()` call (`router.ts`).
-- CF-BU-03: Type mismatch on `RouterResult.ranked` access in CLI (`cli.ts`).
-
-### Verified
-- Full CADRE lifecycle verified on Windows 11 / Node 22 LTS.
-- Security audit passed: path traversal, injection redaction, budget enforcement, weaver robustness.
-- Cache invalidation confirmed across git commit boundary.
-- BM25 relevance ranking confirmed: correct component ranked first on matching query.
+## [1.0.0] — 2026-03-23
 
 ### Added
 - E1 Watcher: automated project state capture on git post-commit hook
@@ -34,9 +23,22 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - InjectionGuard: prompt injection sanitisation for file content in briefings
 - ResultCache: git SHA-keyed in-process cache — zero redundant file reads
 - `npx context-fabric init` CLI: one-command setup with git hook installation
+- Full-tree capture on first init (`git ls-files` in full mode)
+- `@fileoverview` JSDoc summary extraction for file-level knowledge
+- Schema migration guard for `file_summary` column
+- FTS5 sanitiser strips reserved boolean operators (OR, AND, NOT)
+- Vitest test suite: 23 tests across 4 engine files (`pool: 'forks'`)
+- CI workflow: automated test execution with 70% coverage threshold
 
----
+### Fixed
+- CF-BU-01: Missing `await` on `loadSnapshot` and `loadDecisions` in `cf_query` handler
+- CF-BU-02: FTS5 `ORDER BY` alias failure on Windows — replaced alias with direct `bm25()` call
+- CF-BU-03: Type mismatch on `RouterResult.ranked` access in CLI
+- CF-BU-04: Init only captured incremental diff, not full project tree
+- CF-BU-05: CLI query path spread `defaultRouterQuery` as object instead of calling as function
 
-## [0.1.0] — unreleased
-
-Initial release scope.
+### Verified
+- Full CADRE lifecycle verified on Windows 11 / Node 22 LTS
+- Security audit passed: path traversal, injection redaction, budget enforcement, weaver robustness
+- Cache invalidation confirmed across git commit boundary
+- BM25 relevance ranking confirmed: correct component ranked first on matching query

@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS cf_components (
   path         TEXT    NOT NULL UNIQUE,
   sha256       TEXT    NOT NULL,
   exports      TEXT,
+  file_summary TEXT,                       -- extracted from @fileoverview JSDoc
   comp_type    TEXT    NOT NULL DEFAULT 'file',
   captured_at  INTEGER NOT NULL,
   git_sha      TEXT    NOT NULL,

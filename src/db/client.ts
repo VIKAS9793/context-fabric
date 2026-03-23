@@ -23,6 +23,14 @@ export function getDb(projectRoot: string): Database.Database {
   // Execute schema — idempotent due to IF NOT EXISTS
   _db.exec(SCHEMA_SQL);
 
+  // Migration guard: add file_summary column for existing installations
+  // ALTER TABLE ADD COLUMN throws if the column already exists — safe to ignore
+  try {
+    _db.exec('ALTER TABLE cf_components ADD COLUMN file_summary TEXT;');
+  } catch {
+    // Column already exists — expected on databases created with newer schema
+  }
+
   return _db;
 }
 

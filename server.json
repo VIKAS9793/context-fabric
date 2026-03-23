@@ -1,0 +1,35 @@
+{
+  "remote": {
+    "name": "io.github.VIKAS9793/context-fabric",
+    "description": "AI project continuity infrastructure that detects context drift (SHA256) and routes briefings via SQLite FTS5 BM25. Solves the 're-explain project' problem by delivering token-budgeted, structured state to AI agents like Cursor and Claude Code.",
+    "version": "1.0.0",
+    "homepage": "https://github.com/VIKAS9793/context-fabric",
+    "repository": "https://github.com/VIKAS9793/context-fabric",
+    "license": "MIT",
+    "transport": "stdio",
+    "tags": ["context-drift", "git-automation", "ai-infrastructure", "mcp-server", "sqlite-fts5", "cursor-ai"],
+    "categories": ["developer-tools", "ai-utilities", "productivity"],
+    "packages": [
+      {
+        "type": "npm",
+        "name": "context-fabric",
+        "runtime": "node",
+        "installs": [
+          {
+            "command": "npx",
+            "args": ["-y", "context-fabric"]
+          }
+        ]
+      }
+    ]
+  },
+  "_meta": {
+    "io.modelcontextprotocol.registry/publisher-provided": {
+      "categories": ["developer-tools", "ai-infrastructure"],
+      "stack": ["typescript", "sqlite", "mcp", "git"],
+      "status": "stable",
+      "priority": "high",
+      "keywords": ["context-drift", "decision-log", "cadre-engine"]
+    }
+  }
+}
