@@ -12,6 +12,12 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D22.0.0_--_24.x-brightgreen?labelColor=0d1117)](https://nodejs.org)
 [![MCP SDK](https://img.shields.io/badge/MCP_SDK-1.27.1-7c3aed?labelColor=0d1117)](https://modelcontextprotocol.io)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5%2B-3178c6?labelColor=0d1117)](https://typescriptlang.org)
+[![Stack](https://img.shields.io/badge/Stack-Node.js_/_TypeScript-blue?labelColor=0d1117)](https://github.com/VIKAS9793/context-fabric)
+
+---
+
+> [!NOTE]
+> **This is a TypeScript/Node.js MCP Server.** (Not Python). It uses `npx` for zero-install execution and `package.json` for dependency management.
 
 ---
 
