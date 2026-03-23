@@ -24,6 +24,8 @@ jobs:
       # Publish to npm via Trusted Publishing (Tokenless OIDC)
       - name: Publish to npm
         run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # Note: MCP Registry publishing requires interactive OAuth device-flow 
       # login via the browser (`mcp-publisher login github`). Thus, it cannot 

@@ -23,7 +23,7 @@ guard.validate('.');
 
 const server = new McpServer({
   name:    'context-fabric',
-  version: '1.0.0',
+  version: '1.0.1',
 });
 
 // ─── TOOL: cf_capture ────────────────────────────────────────────────────

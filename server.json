@@ -2,7 +2,7 @@
   "remote": {
     "name": "io.github.VIKAS9793/context-fabric",
     "description": "AI project continuity infrastructure that detects context drift (SHA256) and routes briefings via SQLite FTS5 BM25. Solves the 're-explain project' problem by delivering token-budgeted, structured state to AI agents like Cursor and Claude Code.",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "homepage": "https://github.com/VIKAS9793/context-fabric",
     "repository": "https://github.com/VIKAS9793/context-fabric",
     "license": "MIT",

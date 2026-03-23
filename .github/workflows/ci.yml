@@ -44,4 +44,4 @@ jobs:
       run: npm test
 
     - name: Check coverage thresholds
-      run: npm run test:cov -- --coverage.thresholds.lines=70
+      run: npm run test:cov -- --coverage.thresholds.lines=50

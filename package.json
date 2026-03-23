@@ -1,6 +1,6 @@
 {
   "name": "context-fabric",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "mcpName": "io.github.VIKAS9793/context-fabric",
   "description": "AI project continuity infrastructure — context drift detection",
   "author": "Vikas Sahani",
