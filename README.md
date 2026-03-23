@@ -145,11 +145,22 @@ Initialises the SQLite store, installs the git post-commit hook, and runs an ini
      "mcpServers": {
        "context-fabric": {
          "command": "npx",
-         "args": ["context-fabric"]
+         "args": ["-y", "context-fabric"]
        }
      }
    }
    ```
+
+## 🚀 One-Click Install (Smithery)
+
+Context Fabric is available on **Smithery**. You can install it into Claude Desktop with one click:
+
+[![Install with Smithery](https://smithery.ai/install-button.svg)](https://smithery.ai/server/@VIKAS9793/context-fabric)
+
+Or via CLI:
+```bash
+npx -y @smithery/cli install @VIKAS9793/context-fabric --client claude
+```
 
 ## Troubleshooting
 
