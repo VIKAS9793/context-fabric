@@ -39,7 +39,6 @@
     "README.md",
     "LICENSE",
     "server.json",
-    "glama.json",
     "CHANGELOG.md"
   ],
   "scripts": {

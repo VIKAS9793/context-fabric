@@ -1,8 +1,0 @@
-startCommand:
-  type: stdio
-  configSchema: {}
-  commandFunction: |-
-    return {
-      command: "npx",
-      args: ["-y", "context-fabric"]
-    };
