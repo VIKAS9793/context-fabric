@@ -1,0 +1,25 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+  "name": "io.github.VIKAS9793/context-fabric",
+  "description": "Project continuity infrastructure. Detects context drift and routes token-budgeted AI briefings.",
+  "version": "1.0.2",
+  "repository": {
+    "url": "https://github.com/VIKAS9793/context-fabric",
+    "source": "https://github.com/VIKAS9793/context-fabric"
+  },
+  "runtime": {
+    "type": "npx",
+    "command": "context-fabric",
+    "args": []
+  },
+  "categories": ["developer-tools", "ai-utilities", "productivity"],
+  "tags": ["mcp", "mcp-server", "professional-mcp", "context-drift", "git-automation", "ai-infrastructure", "cursor-ai", "claude-code"],
+  "_meta": {
+    "io.modelcontextprotocol.registry/publisher-provided": {
+      "stack": ["typescript", "sqlite", "mcp", "git"],
+      "status": "stable",
+      "priority": "high",
+      "keywords": ["mcp-server", "professional", "context-drift", "decision-log", "cadre-engine"]
+    }
+  }
+}

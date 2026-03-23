@@ -9,6 +9,7 @@ export interface Component {
   path:         string;
   sha256:       string;
   exports:      string | null;    // JSON array string — parse with JSON.parse()
+  file_summary: string | null;    // extracted from @fileoverview JSDoc
   comp_type:    string;
   captured_at:  number;           // unix ms
   git_sha:      string;
@@ -68,6 +69,7 @@ export interface RankedComponent {
   id:           number;
   path:         string;
   exports:      string | null;
+  file_summary: string | null;
   comp_type:    string;
   token_est:    number;
   bm25_score:   number;           // negative — more negative = more relevant

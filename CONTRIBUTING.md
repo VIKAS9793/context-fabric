@@ -71,7 +71,7 @@ For beta testing or local development, you should run Context Fabric directly fr
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/vikas9793/context-fabric.git
+   git clone https://github.com/VIKAS9793/context-fabric.git
    cd context-fabric
    ```
 2. Install dependencies (requires build tools for `better-sqlite3`):

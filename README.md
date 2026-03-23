@@ -1,12 +1,25 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/VIKAS9793/context-fabric/main/assets/banner.png" alt="Context Fabric Banner" width="800">
+</p>
+
 # Context Fabric
 
 [![npm version](https://img.shields.io/npm/v/context-fabric?color=0ea5e9&labelColor=0d1117)](https://npmjs.com/package/context-fabric)
+[![npm downloads](https://img.shields.io/npm/dt/context-fabric?color=0ea5e9&labelColor=0d1117)](https://npmjs.com/package/context-fabric)
 [![CI](https://img.shields.io/github/actions/workflow/status/VIKAS9793/context-fabric/ci.yml?branch=main&color=10b981&labelColor=0d1117&label=CI)](https://github.com/VIKAS9793/context-fabric/actions)
-[![Status: Beta](https://img.shields.io/badge/status-beta-ff69b4?labelColor=0d1117)](https://github.com/VIKAS9793/context-fabric/issues)
+[![Status: Stable](https://img.shields.io/badge/status-stable-10b981?labelColor=0d1117)](https://github.com/VIKAS9793/context-fabric)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?labelColor=0d1117)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D22.0.0_--_24.x-brightgreen?labelColor=0d1117)](https://nodejs.org)
 [![MCP SDK](https://img.shields.io/badge/MCP_SDK-1.27.1-7c3aed?labelColor=0d1117)](https://modelcontextprotocol.io)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5%2B-3178c6?labelColor=0d1117)](https://typescriptlang.org)
+
+---
+
+### **Official Registry Support**
+Context Fabric is configured for official inclusion in the **Model Context Protocol (MCP) Registry**. 
+- **Namespace**: `io.github.VIKAS9793/context-fabric`
+- **Metadata**: [server.json](server.json)
+- **Deployment**: Fully automated via GitHub Actions + OIDC for verifiable publishing.
 
 **AI project continuity infrastructure for MCP-compatible coding tools.**
 

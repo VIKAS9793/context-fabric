@@ -9,7 +9,12 @@ import { selectWithinBudget } from './engines/governor.js';
 import { composeBriefing, loadSnapshot, loadDecisions } from './engines/weaver.js';
 import { getDb } from './db/client.js';
 import { writeFileSync, existsSync, mkdirSync, statSync } from 'node:fs';
-import { resolve, basename, join } from 'node:path';
+import { resolve, basename, join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const selfPath = resolve(__dirname, 'cli.js');
 
 const command = process.argv[2];
 const projectRoot = resolve('.');
@@ -36,8 +41,7 @@ async function run() {
       const hookPath = resolve(projectRoot, '.git/hooks/post-commit');
       // Use absolute node and cli path for robustness across shells (Windows/WSL/NVM)
       const nodePath = process.execPath;
-      const cliPath = resolve(projectRoot, 'dist/cli.js'); 
-      const hookContent = `#! /bin/sh\n# Context Fabric auto-capture\necho "Context Fabric: capturing state..."\n"${nodePath}" "${cliPath}" capture\n`;
+      const hookContent = `#! /bin/sh\n# Context Fabric auto-capture\necho "Context Fabric: capturing state..."\n"${nodePath}" "${selfPath}" capture\n`;
       try {
         writeFileSync(hookPath, hookContent, { mode: 0o755 });
         if (existsSync(hookPath)) {
@@ -101,7 +105,9 @@ async function run() {
       const decisions = loadDecisions(db);
       const drift = computeDrift(db, projectRoot);
       
-      const routerQuery = { ...defaultRouterQuery, text: queryText, limit: 25 };
+      // CF-BU-05 FIX: defaultRouterQuery is a function, not an object.
+      // Spreading a function produces {} — call it with the query text instead.
+      const routerQuery = defaultRouterQuery(queryText);
       const result = routeQuery(db, routerQuery);
       const budget = selectWithinBudget(result.ranked, { model: 'default', budget_pct: 0.1 });
       

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://glama.ai/mcp/schemas/server.json",
+  "name": "Context Fabric",
+  "description": "Automatic project context management for AI agents. Detects drift from git history and delivers optimized briefings via SQLite FTS5.",
+  "maintainers": [
+    "VIKAS9793"
+  ],
+  "capabilities": {
+    "tools": true,
+    "resources": true,
+    "prompts": false
+  },
+  "tags": [
+    "mcp",
+    "mcp-server",
+    "professional",
+    "context-drift",
+    "git",
+    "sqlite",
+    "automation",
+    "ai"
+  ]
+}
