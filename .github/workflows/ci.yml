@@ -33,6 +33,9 @@ jobs:
       
     - name: Build project
       run: npm run build
+
+    - name: Verify release metadata
+      run: npm run release:check
       
     - name: Smoke Test
       run: |

@@ -10,10 +10,15 @@ export interface Component {
   sha256:       string;
   exports:      string | null;    // JSON array string — parse with JSON.parse()
   file_summary: string | null;    // extracted from @fileoverview JSDoc
+  outline:      string | null;    // bounded structural outline for retrieval
   comp_type:    string;
+  status:       'active' | 'tombstoned';
+  tombstoned_at:number | null;
+  skipped_reason:string | null;   // why outline/indexing was skipped
   captured_at:  number;           // unix ms
   git_sha:      string;
   token_est:    number;           // pre-calculated: Math.ceil(content.length / 3.5)
+  last_capture_id:number | null;
 }
 
 export interface Decision {
@@ -33,12 +38,29 @@ export interface Snapshot {
   token_est:    number;
 }
 
+export interface CaptureRun {
+  id:            number;
+  git_sha:       string;
+  status:        'pending' | 'running' | 'succeeded' | 'failed';
+  mode:          'full' | 'incremental' | 'hook-deferred' | 'migrated';
+  started_at:    number;
+  completed_at:  number | null;
+  changed_files: number;
+  indexed_files: number;
+  indexed_bytes: number;
+  skipped_count: number;
+  skipped_summary:string | null;  // JSON object keyed by skip reason
+  error_message: string | null;
+}
+
 // ─── E1 WATCHER ────────────────────────────────────────────────────────────
 
 export interface CaptureResult {
   captured:     number;           // count of files processed
   git_sha:      string;
   timestamp:    number;           // unix ms
+  capture_id?:  number;
+  deferred?:    boolean;
 }
 
 // ─── E2 ANCHOR ─────────────────────────────────────────────────────────────
@@ -70,6 +92,7 @@ export interface RankedComponent {
   path:         string;
   exports:      string | null;
   file_summary: string | null;
+  outline:      string | null;
   comp_type:    string;
   token_est:    number;
   bm25_score:   number;           // negative — more negative = more relevant
@@ -133,6 +156,7 @@ export interface WeaverInput {
   decisions: Pick<Decision, 'title' | 'rationale' | 'status'>[];
   snapshot: Pick<Snapshot, 'git_sha' | 'summary'> | undefined;
   projectName: string;
+  operationalWarnings?: string[];
 }
 
 export interface WeaverOutput {
@@ -141,4 +165,20 @@ export interface WeaverOutput {
   budget_tokens:number;           // from BudgetResult
   drift_score:  number;           // from DriftReport
   severity:     string;           // from DriftReport
+}
+
+export interface HealthReport {
+  schema_version: number;
+  search_index_version: number;
+  db_integrity: 'ok' | 'failed';
+  degraded: boolean;
+  degraded_reason: string | null;
+  latest_successful_capture:
+    | Pick<CaptureRun, 'id' | 'git_sha' | 'completed_at' | 'indexed_files' | 'skipped_count'>
+    | null;
+  pending_capture_count: number;
+  failed_capture_count: number;
+  latest_skipped_summary: Record<string, number>;
+  hook_installed: boolean;
+  hook_runtime_ready: boolean;
 }

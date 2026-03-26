@@ -1,6 +1,6 @@
 {
   "name": "context-fabric",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "mcpName": "io.github.VIKAS9793/context-fabric",
   "description": "Context synchronization layer for AI coding agents — ensure project continuity and eliminate memory drift automatically.",
   "keywords": [
@@ -34,8 +34,9 @@
   },
   "main": "dist/index.js",
   "files": [
-    "dist",
-    "src",
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "src/**/*.ts",
     "README.md",
     "LICENSE",
     "server.json",
@@ -45,10 +46,11 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "lint": "eslint src/**",
+    "release:check": "node ./scripts/verify-version-consistency.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
-    "ci:check": "npm ci && npm run build && npm test"
+    "ci:check": "npm ci && npm run build && npm test && npm run release:check"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.27.1",

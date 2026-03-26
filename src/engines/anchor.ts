@@ -10,7 +10,11 @@ import { PathGuard } from '../security/path-guard.js';
 
 export function computeDrift(db: Database.Database, projectRoot: string): DriftReport {
   const guard = new PathGuard(projectRoot);
-  const rows = db.prepare('SELECT path, sha256 FROM cf_components').all() as
+  const rows = db.prepare(`
+    SELECT path, sha256
+    FROM cf_components
+    WHERE status = 'active'
+  `).all() as
     { path: string; sha256: string }[];
 
   const stale: StaleEntry[] = [];

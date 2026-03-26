@@ -15,11 +15,13 @@
 
 ---
 
+Current stable release: `v1.0.4`. See [CHANGELOG.md](CHANGELOG.md) for the release notes.
+
 ### **Official Registry Support**
 Context Fabric is configured for official inclusion in the **Model Context Protocol (MCP) Registry**. 
 - **Namespace**: `io.github.VIKAS9793/context-fabric`
 - **Metadata**: [server.json](server.json)
-- **Deployment**: Fully automated via GitHub Actions + OIDC for verifiable publishing.
+- **Distribution**: Published as an npm package with official MCP Registry metadata.
 
 The context synchronization layer for AI coding agents. Ensure project continuity, eliminate agent memory drift, and manage token budgets automatically across any coding session.
 
@@ -49,7 +51,7 @@ Context Fabric is powered by **CADRE**, a five-engine internal architecture. Eve
 
 **E1 — WATCHER**
 
-Installs a git post-commit hook on `context-fabric init`. Fires automatically on every commit. Computes SHA256 fingerprints of changed files, extracts exported symbols, calculates token estimates, and upserts everything into the local SQLite store. The developer does nothing after setup.
+Installs a git post-commit hook on `context-fabric init`. Fires automatically on every commit. Reads committed Git blobs instead of the mutable working tree, computes SHA256 fingerprints, extracts exported symbols, calculates token estimates, and upserts everything into the local SQLite store. The developer does nothing after setup.
 
 Replaces: markdown-per-commit workflows, 5-step session rituals, and AI interview workflows used to extract structured project knowledge before sessions.
 
@@ -67,7 +69,7 @@ Replaces: manual selection of which documentation to include per task, and the m
 
 **E4 — GOVERNOR**
 
-Applies a configurable token budget ceiling to the E3 ranked output using greedy selection on the relevance-ordered list. Default: 8% of the model context window, leaving 92% for conversation and code. Token estimates pre-calculated by E1 mean zero additional file reads at budget selection time.
+Applies a configurable token budget ceiling to the E3 ranked output using greedy selection on the relevance-ordered list. Default: 8% of the model context window, leaving 92% for conversation and code. Oversize components are skipped so the remaining budget can still be used by later-ranked matches. Token estimates pre-calculated by E1 mean zero additional file reads at budget selection time.
 
 Replaces: manual token management, and the pattern of keeping sessions alive indefinitely to avoid the cost of context restoration on restart.
 
@@ -108,7 +110,7 @@ E1 WATCHER --- SHA256 fingerprint --- SQLite upsert --- FTS5 index update
 npx context-fabric init
 ```
 
-Initialises the SQLite store, installs the git post-commit hook, and runs an initial capture. Connect the MCP server to your tool and context delivery is active from the next commit.
+Initialises the SQLite store, installs the git post-commit hook, stages the stable local runtime under `.context-fabric/runtime`, and runs an initial capture. Connect the MCP server to your tool and context delivery is active from the next commit.
 
 ## Installation & Setup
 
@@ -145,6 +147,17 @@ Initialises the SQLite store, installs the git post-commit hook, and runs an ini
    }
    ```
 
+## Health & Repair
+
+Use the health commands when validating a local install or recovering from a broken hook/runtime state.
+
+```bash
+npx context-fabric doctor
+npx context-fabric doctor --repair
+```
+
+`doctor` reports schema version, search index version, DB integrity, degraded mode, pending and failed captures, plus hook runtime readiness. `doctor --repair` refreshes the local runtime bundle, reinstalls the stable hook wrapper, validates `.gitignore`, and rebuilds the search index when the database is healthy.
+
 ## Troubleshooting
 
 ### `spawn npx ENOENT` Errors
@@ -166,8 +179,34 @@ On Windows, spaces in your project path (e.g., `C:\My Projects\app`) can break t
 ### Feedback & Reporting
 If something breaks, please run:
 ```bash
-npx context-fabric diag
+npx context-fabric doctor
 ```
+
+`npx context-fabric diag` remains available as a compatibility alias.
+
+---
+
+## FAQ
+
+**Does Context Fabric send my code to a server?**
+No. It is local-only and does not make outbound network calls for capture, retrieval, or drift analysis.
+
+**Does it index uncommitted changes?**
+No. Captured state is based on committed Git objects. Uncommitted changes are detected by drift checks, but they are not indexed as the new source of truth until you commit and capture them.
+
+**Is this a replacement for `AGENTS.md`, `CLAUDE.md`, or human docs?**
+It reduces the need for manual session-handoff documents, but it is not a replacement for product specs, onboarding guides, or stakeholder-facing documentation.
+
+**What files does it write locally?**
+It writes under `.context-fabric/` for the database and runtime bundle, and installs `.git/hooks/post-commit` to keep capture automatic.
+
+**When should I not use it?**
+Do not use Context Fabric if you need cloud sync, cross-repo search, full semantic indexing of implementation bodies, or project-file mutation from MCP tools.
+
+**How do I recover a broken install?**
+Run `npx context-fabric doctor` first. If the hook runtime or local state needs repair, run `npx context-fabric doctor --repair`.
+
+Full FAQ: [docs/FAQ.md](docs/FAQ.md)
 
 ---
 
@@ -178,6 +217,7 @@ npx context-fabric diag
 | `cf_capture` | E1 | Manual context capture outside of a git commit |
 | `cf_drift` | E2 | Standalone drift check — returns severity and stale file count |
 | `cf_query` | E2 + E3 + E4 + E5 | Full context briefing for the current task |
+| `cf_health` | Local health | Report database, capture, hook, and search index health |
 | `cf_log_decision` | Storage | Persist an architecture decision across sessions |
 
 ---
@@ -200,7 +240,7 @@ npx context-fabric diag
 | Access type | Scope |
 |---|---|
 | Filesystem reads | Project root only — path traversal rejected |
-| Filesystem writes | `.context-fabric/cf.db` only |
+| Filesystem writes | `.context-fabric/cf.db`, `.context-fabric/runtime/**`, `.context-fabric/bin/post-commit`, and `.git/hooks/post-commit` |
 | Network | None — zero outbound connections, no telemetry |
 | Project file writes | None — no tool call writes to project files |
 
@@ -219,6 +259,15 @@ See [SECURITY.md](SECURITY.md) for the vulnerability disclosure process.
 ## Contributing
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+
+## Project Docs
+
+- [Developer Guide](docs/DEVELOPER_GUIDE.md)
+- [FAQ](docs/FAQ.md)
+- [Use Cases and Limitations](docs/USE_CASES.md)
+- [Wiki Home](docs/wiki/Home.md)
+- [Security Policy](SECURITY.md)
+- [Changelog](CHANGELOG.md)
 
 ---
 

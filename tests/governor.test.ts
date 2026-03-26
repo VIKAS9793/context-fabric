@@ -40,7 +40,7 @@ describe('E4 Governor — selectWithinBudget', () => {
     expect(result.dropped).toBe(1);
   });
 
-  it('stops at first component that overflows — does not skip to smaller', () => {
+  it('skips oversize components and continues filling budget with later entries', () => {
     const ranked = [
       makeComponent(1, 200),
       makeComponent(2, 5000),
@@ -49,9 +49,10 @@ describe('E4 Governor — selectWithinBudget', () => {
 
     const result = selectWithinBudget(ranked, { hard_ceiling: 500 });
 
-    expect(result.selected).toHaveLength(1);
+    expect(result.selected).toHaveLength(2);
     expect(result.selected[0].id).toBe(1);
-    expect(result.dropped).toBe(2);
+    expect(result.selected[1].id).toBe(3);
+    expect(result.dropped).toBe(1);
   });
 
   it('uses Math.floor for budget calculation — never exceeds ceiling', () => {

@@ -3,7 +3,20 @@
 interface CacheEntry<T> {
   value:      T;
   computed_at: number;    // unix ms
-  git_sha:    string;     // invalidated when git SHA changes
+  version:    string;     // invalidated when capture identity changes
+}
+
+export interface CacheIdentity {
+  kind: string;
+  capture_id?: number | null;
+  query?: string;
+  budget_pct?: number;
+  model?: string;
+  include_drift?: boolean;
+}
+
+export function makeCacheKey(identity: CacheIdentity): string {
+  return JSON.stringify(identity);
 }
 
 export class ResultCache {
@@ -21,7 +34,7 @@ export class ResultCache {
    */
   async getOrCompute<T>(
     key:        string,
-    git_sha:    string,
+    version:    string,
     compute:    () => T | null,
   ): Promise<T | null> {
     const entry = this.store.get(key) as CacheEntry<T> | undefined;
@@ -30,7 +43,7 @@ export class ResultCache {
     // Cache hit: same git SHA, within TTL
     if (
       entry &&
-      entry.git_sha === git_sha &&
+      entry.version === version &&
       (now - entry.computed_at) < this.ttl_ms
     ) {
       return entry.value;
@@ -39,7 +52,7 @@ export class ResultCache {
     // Cache miss or invalidated: recompute
     const value = compute();
     if (value !== null) {
-      this.store.set(key, { value, computed_at: now, git_sha });
+      this.store.set(key, { value, computed_at: now, version });
     }
     return value;
   }

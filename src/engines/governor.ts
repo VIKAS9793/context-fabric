@@ -44,7 +44,7 @@ export function selectWithinBudget(
 
   for (const component of ranked) {
     if (used_tokens + component.token_est > budget_tokens) {
-      break;
+      continue;
     }
     selected.push(component);
     used_tokens += component.token_est;

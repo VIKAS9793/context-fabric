@@ -73,14 +73,15 @@ function fetchByRecency(
   limit: number,
 ): RankedComponent[] {
   const rows = db.prepare(`
-    SELECT id, path, exports, file_summary, comp_type, token_est,
+    SELECT id, path, exports, file_summary, outline, comp_type, token_est,
            captured_at
     FROM cf_components
+    WHERE status = 'active'
     ORDER BY captured_at DESC
     LIMIT ?
   `).all(limit) as {
     id: number; path: string; exports: string | null;
-    file_summary: string | null;
+    file_summary: string | null; outline: string | null;
     comp_type: string; token_est: number; captured_at: number;
   }[];
 
@@ -89,6 +90,7 @@ function fetchByRecency(
     path:         row.path,
     exports:      row.exports,
     file_summary: row.file_summary,
+    outline:      row.outline,
     comp_type:    row.comp_type,
     token_est:    row.token_est,
     bm25_score:   0,      // no BM25 score in fallback
@@ -117,7 +119,7 @@ export function routeQuery(
 
   let rows: {
     id: number; path: string; exports: string | null;
-    file_summary: string | null;
+    file_summary: string | null; outline: string | null;
     comp_type: string; token_est: number; bm25_score: number;
   }[];
 
@@ -128,17 +130,19 @@ export function routeQuery(
         c.path,
         c.exports,
         c.file_summary,
+        c.outline,
         c.comp_type,
         c.token_est,
-        bm25(cf_search, 2.0, 1.0) AS bm25_score
-      FROM cf_search
-      JOIN cf_components c ON cf_search.rowid = c.id
-      WHERE cf_search MATCH ?
-      ORDER BY bm25(cf_search, 2.0, 1.0)
+        bm25(cf_search_v2, 2.0, 1.0, 1.5, 1.2) AS bm25_score
+      FROM cf_search_v2
+      JOIN cf_components c ON cf_search_v2.rowid = c.id
+      WHERE c.status = 'active'
+        AND cf_search_v2 MATCH ?
+      ORDER BY bm25(cf_search_v2, 2.0, 1.0, 1.5, 1.2)
       LIMIT ?
     `).all(sanitised, limit) as {
       id: number; path: string; exports: string | null;
-      file_summary: string | null;
+      file_summary: string | null; outline: string | null;
       comp_type: string; token_est: number; bm25_score: number;
     }[];
   } catch (err) {
@@ -167,6 +171,7 @@ export function routeQuery(
     path:         row.path,
     exports:      row.exports,
     file_summary: row.file_summary,
+    outline:      row.outline,
     comp_type:    row.comp_type,
     token_est:    row.token_est,
     bm25_score:   row.bm25_score,

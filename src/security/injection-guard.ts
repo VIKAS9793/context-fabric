@@ -25,20 +25,62 @@ const INJECTION_PATTERNS: RegExp[] = [
   /###\s*Instruction\s*:/gi,                 // instruction-format injection
 ];
 
-export function sanitiseFileContent(content: string, _filePath: string): string {
+function redactInjectionPatterns(content: string): string {
   let sanitised = content;
 
   for (const pattern of INJECTION_PATTERNS) {
     sanitised = sanitised.replace(pattern, '[CONTENT REDACTED BY CF SECURITY]');
   }
 
+  return sanitised;
+}
+
+function normaliseControlCharacters(content: string): string {
+  let output = '';
+
+  for (const char of content) {
+    const code = char.charCodeAt(0);
+    const isAsciiControl =
+      (code >= 0x00 && code <= 0x08) ||
+      code === 0x0b ||
+      code === 0x0c ||
+      (code >= 0x0e && code <= 0x1f) ||
+      code === 0x7f;
+
+    output += isAsciiControl ? ' ' : char;
+  }
+
+  return output;
+}
+
+export function sanitiseRepoText(
+  content: string,
+  maxChars = 2000,
+): string {
+  let sanitised = normaliseControlCharacters(redactInjectionPatterns(content))
+    .replace(/[<>]/g, '')
+    .replace(/\s+\n/g, '\n')
+    .trim();
+
   // Truncate very long files — prevents context flooding
-  const MAX_CONTENT_CHARS = 2000;
-  if (sanitised.length > MAX_CONTENT_CHARS) {
-    sanitised = sanitised.slice(0, MAX_CONTENT_CHARS) + '\n... [truncated]';
+  if (sanitised.length > maxChars) {
+    sanitised = sanitised.slice(0, maxChars).trimEnd() + '\n... [truncated]';
   }
 
   return sanitised;
+}
+
+export function sanitiseFileContent(content: string, _filePath: string): string {
+  return sanitiseRepoText(content, 2000);
+}
+
+export function sanitiseLabel(
+  content: string,
+  maxChars = 160,
+): string {
+  return sanitiseRepoText(content, maxChars)
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /**
@@ -59,11 +101,5 @@ export function wrapAsData(content: string, label: string): string {
  * Commit messages are developer-controlled but can contain injections.
  */
 export function sanitiseGitMessage(message: string): string {
-  // Strip any injection patterns
-  let safe = message;
-  for (const pattern of INJECTION_PATTERNS) {
-    safe = safe.replace(pattern, '[REDACTED]');
-  }
-  // Truncate — commit messages should be short
-  return safe.slice(0, 200);
+  return sanitiseLabel(message.replace(/\n+/g, ' '), 200);
 }

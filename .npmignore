@@ -1,0 +1,6 @@
+.context-fabric/
+coverage/
+*.log
+*.tgz
+dist/**/*.map
+dist/**/*.d.ts.map

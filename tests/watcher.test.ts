@@ -84,6 +84,49 @@ describe('E1 Watcher — runWatcher', () => {
     expect(result.captured).toBe(1);
   });
 
+  it('tombstones renamed paths and activates the new path', () => {
+    writeFileSync(join(testRoot, 'old-name.ts'), 'export const renamed = true;');
+    git(['add', '.']);
+    git(['commit', '-m', 'initial commit']);
+    runWatcher(db, testRoot);
+
+    git(['mv', 'old-name.ts', 'new-name.ts']);
+    git(['commit', '-m', 'rename file']);
+
+    const result = runWatcher(db, testRoot);
+    expect(result.captured).toBe(1);
+
+    const rows = db.prepare(`
+      SELECT path, status
+      FROM cf_components
+      ORDER BY path
+    `).all() as { path: string; status: string }[];
+
+    expect(rows).toContainEqual({ path: 'new-name.ts', status: 'active' });
+    expect(rows).toContainEqual({ path: 'old-name.ts', status: 'tombstoned' });
+  });
+
+  it('tombstones deleted paths instead of leaving stale active rows', () => {
+    writeFileSync(join(testRoot, 'delete-me.ts'), 'export const keep = false;');
+    git(['add', '.']);
+    git(['commit', '-m', 'initial commit']);
+    runWatcher(db, testRoot);
+
+    git(['rm', 'delete-me.ts']);
+    git(['commit', '-m', 'delete file']);
+
+    const result = runWatcher(db, testRoot);
+    expect(result.captured).toBe(0);
+
+    const row = db.prepare(`
+      SELECT status
+      FROM cf_components
+      WHERE path = ?
+    `).get('delete-me.ts') as { status: string } | undefined;
+
+    expect(row?.status).toBe('tombstoned');
+  });
+
   it('stores pre-calculated token_est at capture time', () => {
     const content = 'export const value = "hello world";';
     writeFileSync(join(testRoot, 'tok.ts'), content);

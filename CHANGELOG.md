@@ -2,8 +2,34 @@
 
 All notable changes to Context Fabric are documented here.
 
-Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).  
-This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+Format follows [Keep a Changelog](https://keepachangelog.com/).  
+This project adheres to [Semantic Versioning](https://semver.org/).
+
+---
+
+## [1.0.4] — 2026-03-26
+
+### Added
+- `cf_health` MCP tool for local database, capture, hook, and index health reporting.
+- `context-fabric doctor` with `--repair`, plus `diag` as a compatibility alias.
+- Release metadata consistency check script enforced in CI and MCP registry publish workflow.
+- Added maintainer and adopter docs for FAQ, developer workflow, and use-case boundaries.
+
+### Changed
+- Switched watcher capture to committed Git object reads with pending/running/succeeded/failed capture runs.
+- Added stable local hook runtime under `.context-fabric/runtime` and `.context-fabric/bin/post-commit`.
+- Upgraded retrieval to active-only search index v2 with bounded structural outlines.
+- Updated README to document health, repair, stable hook runtime, and manual npm publish before tag-based registry release.
+
+### Fixed
+- Removed stale search and component state after deletes and renames by tombstoning inactive rows.
+- Fixed query cache identity to include capture identity and query inputs, preventing drift-mode cross-contamination.
+- Fixed legacy and partially migrated database upgrades by deferring index creation until required columns exist.
+- Applied consistent sanitisation across repo-derived text rendered into briefings and health output.
+
+### Verified
+- Database migration recovery verified for legacy v1 and partial-upgrade failure states.
+- Hook repair, search index rebuild, and schema v2 health checks verified through CLI and test coverage.
 
 ---
 

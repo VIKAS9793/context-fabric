@@ -1,90 +1,202 @@
 #! /usr/bin/env node
 // src/cli.ts
-// Context Fabric CLI — Entry point for repo init and capture.
+// Context Fabric CLI — repo install, capture, query, and repair entry point.
 
-import { runWatcher } from './engines/watcher.js';
 import { computeDrift } from './engines/anchor.js';
-import { routeQuery, defaultRouterQuery } from './engines/router.js';
 import { selectWithinBudget } from './engines/governor.js';
-import { composeBriefing, loadSnapshot, loadDecisions } from './engines/weaver.js';
-import { getDb } from './db/client.js';
-import { writeFileSync, existsSync, mkdirSync, statSync } from 'node:fs';
-import { resolve, basename, join, dirname } from 'node:path';
+import { routeQuery, defaultRouterQuery } from './engines/router.js';
+import { composeBriefing, loadDecisions, loadSnapshot } from './engines/weaver.js';
+import {
+  ensureHeadCaptured,
+  runHookCapture,
+  runWatcher,
+} from './engines/watcher.js';
+import { ensureWritableDb, getDb, getDbRuntimeState } from './db/client.js';
+import { rebuildSearchIndex } from './db/search-index.js';
+import { formatHealthReport, getHealthReport } from './health.js';
+import { getContextFabricPaths } from './project-paths.js';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const selfPath = resolve(__dirname, 'cli.js');
+const distRoot = resolve(__dirname);
 
 const command = process.argv[2];
+const flags = new Set(process.argv.slice(3));
+const queryArg = process.argv[3] ?? '';
 const projectRoot = resolve('.');
 const projectName = basename(projectRoot);
 const db = getDb(projectRoot);
+const runtimeState = getDbRuntimeState();
 
-async function run() {
+function ensureDir(path: string): void {
+  if (!existsSync(path)) mkdirSync(path, { recursive: true });
+}
+
+function toShellPath(path: string): string {
+  const normalised = path.replace(/\\/g, '/');
+  if (/^[A-Za-z]:\//.test(normalised)) {
+    return `/${normalised[0]!.toLowerCase()}${normalised.slice(2)}`;
+  }
+  return normalised;
+}
+
+function copyDirectoryRecursive(sourceDir: string, targetDir: string): void {
+  ensureDir(targetDir);
+  for (const entry of readdirSync(sourceDir, { withFileTypes: true })) {
+    const sourcePath = join(sourceDir, entry.name);
+    const targetPath = join(targetDir, entry.name);
+
+    if (entry.isDirectory()) {
+      copyDirectoryRecursive(sourcePath, targetPath);
+      continue;
+    }
+
+    copyFileSync(sourcePath, targetPath);
+  }
+}
+
+function installRuntimeBundle(): void {
+  const paths = getContextFabricPaths(projectRoot);
+  ensureDir(paths.runtimeDir);
+  ensureDir(paths.runtimeDistDir);
+  rmSync(paths.runtimeDistDir, { recursive: true, force: true });
+  ensureDir(paths.runtimeDistDir);
+  copyDirectoryRecursive(distRoot, paths.runtimeDistDir);
+}
+
+function ensureGitignoreEntry(): boolean {
+  const paths = getContextFabricPaths(projectRoot);
+  const entry = '.context-fabric/';
+
+  if (!existsSync(paths.gitignorePath)) {
+    writeFileSync(paths.gitignorePath, `${entry}\n`, 'utf8');
+    return true;
+  }
+
+  const current = readFileSync(paths.gitignorePath, 'utf8');
+  const lines = current.split(/\r?\n/);
+  if (lines.includes(entry)) return false;
+
+  const separator = current.endsWith('\n') || current.length === 0 ? '' : '\n';
+  writeFileSync(paths.gitignorePath, `${current}${separator}${entry}\n`, 'utf8');
+  return true;
+}
+
+function installHookWrapper(): void {
+  const paths = getContextFabricPaths(projectRoot);
+  ensureDir(paths.binDir);
+
+  const nodePath = toShellPath(process.execPath);
+  const wrapper = [
+    '#!/bin/sh',
+    '# Context Fabric stable hook wrapper',
+    'SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"',
+    'PROJECT_ROOT="$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)"',
+    `NODE_BIN="${nodePath}"`,
+    'RUNTIME="$PROJECT_ROOT/.context-fabric/runtime/dist/cli.js"',
+    'if [ ! -x "$NODE_BIN" ]; then',
+    '  NODE_BIN=node',
+    'fi',
+    '"$NODE_BIN" "$RUNTIME" capture --hook --silent',
+    '',
+  ].join('\n');
+  writeFileSync(paths.hookWrapperPath, wrapper, { mode: 0o755 });
+
+  const hook = [
+    '#!/bin/sh',
+    '# Context Fabric post-commit entry',
+    'SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"',
+    'PROJECT_ROOT="$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)"',
+    '"$PROJECT_ROOT/.context-fabric/bin/post-commit"',
+    '',
+  ].join('\n');
+  writeFileSync(paths.gitHookPath, hook, { mode: 0o755 });
+}
+
+function printHealth(): void {
+  console.log(formatHealthReport(getHealthReport(db, projectRoot)));
+}
+
+function runDoctor(repair: boolean): void {
+  console.log('\x1b[36mContext Fabric Doctor\x1b[0m');
+  console.log(`Project: ${projectRoot}`);
+  console.log(`Node: ${process.version}`);
+  console.log(`Platform: ${process.platform}/${process.arch}`);
+
+  if (repair) {
+    const paths = getContextFabricPaths(projectRoot);
+    ensureDir(paths.cfDir);
+    installRuntimeBundle();
+    installHookWrapper();
+    const updatedGitignore = ensureGitignoreEntry();
+    console.log('Repair: runtime bundle refreshed');
+    console.log('Repair: hook wrapper regenerated');
+    console.log(`Repair: .gitignore ${updatedGitignore ? 'updated' : 'already correct'}`);
+
+    if (!runtimeState.degraded) {
+      ensureWritableDb();
+      rebuildSearchIndex(db);
+      console.log('Repair: search index rebuilt');
+    } else {
+      console.log(`Repair: search index rebuild skipped (${runtimeState.degradedReason ?? 'database degraded'})`);
+    }
+  }
+
+  printHealth();
+}
+
+async function run(): Promise<void> {
   switch (command) {
     case 'init': {
       console.log('Initialising Context Fabric...');
-      
+
       if (process.platform === 'win32' && projectRoot.includes(' ')) {
         console.warn(
           '\x1b[33mWarning:\x1b[0m project path contains spaces. ' +
           'If the MCP server fails to start, move the project to a path without spaces.'
         );
       }
-      
-      const cfDir = resolve(projectRoot, '.context-fabric');
-      if (!existsSync(cfDir)) mkdirSync(cfDir);
 
-      console.log(`  ✓ Database initialised: .context-fabric/cf.db`);
+      const paths = getContextFabricPaths(projectRoot);
+      ensureDir(paths.cfDir);
+      installRuntimeBundle();
+      installHookWrapper();
 
-      const hookPath = resolve(projectRoot, '.git/hooks/post-commit');
-      // Use absolute node and cli path for robustness across shells (Windows/WSL/NVM)
-      const nodePath = process.execPath;
-      const hookContent = `#! /bin/sh\n# Context Fabric auto-capture\necho "Context Fabric: capturing state..."\n"${nodePath}" "${selfPath}" capture\n`;
-      try {
-        writeFileSync(hookPath, hookContent, { mode: 0o755 });
-        if (existsSync(hookPath)) {
-          console.log(`  ✓ git post-commit hook installed`);
-        } else {
-          throw new Error('File not created');
-        }
-      } catch {
-        console.error(
-          '  x  Hook installation failed. Check that .git/hooks/ directory exists.\n' +
-          '     Run: mkdir .git\\hooks (Windows) or mkdir -p .git/hooks (Mac/Linux)\n' +
-          '     Then run: npx context-fabric init again'
-        );
-      }
-
-      const gitignorePath = resolve(projectRoot, '.gitignore');
-      if (existsSync(gitignorePath)) {
-        // Simple append if not already there
-      } else {
-        writeFileSync(gitignorePath, '.context-fabric/\n');
-        console.log(`  ✓ .gitignore created with .context-fabric/ entry`);
-      }
+      console.log('  ✓ Database initialised: .context-fabric/cf.db');
+      console.log('  ✓ Stable hook wrapper installed');
+      console.log('  ✓ Runtime bundle installed under .context-fabric/runtime');
+      console.log(`  ✓ .gitignore ${ensureGitignoreEntry() ? 'updated' : 'already contains .context-fabric/'}`);
 
       const result = runWatcher(db, projectRoot);
       console.log(`  ✓ Initial capture: ${result.captured} files`);
-      console.log(`\nContext Fabric is ready.`);
+      console.log('\nContext Fabric is ready.');
       break;
     }
 
     case 'capture': {
-      const result = runWatcher(db, projectRoot);
-      console.log(`Captured ${result.captured} files. SHA: ${result.git_sha}`);
+      const silent = flags.has('--silent');
+      const fromHook = flags.has('--hook');
+      const result = fromHook
+        ? runHookCapture(db, projectRoot)
+        : runWatcher(db, projectRoot);
 
-      // Case 5: Verify hook is executable (Mac/Linux)
-      const hookPath = join(projectRoot, '.git', 'hooks', 'post-commit');
-      if (existsSync(hookPath) && process.platform !== 'win32') {
-        try {
-          const stats = statSync(hookPath);
-          const isExecutable = (stats.mode & 0o111) !== 0;
-          if (!isExecutable) {
-            console.warn('\x1b[33mWarning:\x1b[0m post-commit hook exists but is not executable. Run: chmod +x .git/hooks/post-commit');
-          }
-        } catch { /* Ignore file access errors */ }
+      if (!silent) {
+        if (result.deferred) {
+          console.log(`Deferred capture for ${result.git_sha}. Pending run #${result.capture_id ?? 'n/a'}`);
+        } else {
+          console.log(`Captured ${result.captured} files. SHA: ${result.git_sha}. Capture #${result.capture_id ?? 'n/a'}`);
+        }
       }
       break;
     }
@@ -100,64 +212,45 @@ async function run() {
     }
 
     case 'query': {
-      const queryText = process.argv[3] || '';
+      const reconciliation = ensureHeadCaptured(db, projectRoot);
       const snapshot = loadSnapshot(db);
       const decisions = loadDecisions(db);
       const drift = computeDrift(db, projectRoot);
-      
-      // CF-BU-05 FIX: defaultRouterQuery is a function, not an object.
-      // Spreading a function produces {} — call it with the query text instead.
-      const routerQuery = defaultRouterQuery(queryText);
-      const result = routeQuery(db, routerQuery);
+      const result = routeQuery(db, defaultRouterQuery(queryArg));
       const budget = selectWithinBudget(result.ranked, { model: 'default', budget_pct: 0.1 });
-      
       const briefing = composeBriefing({
         drift,
         budget,
         decisions,
         snapshot,
-        projectName
+        projectName,
+        operationalWarnings: reconciliation.warning ? [reconciliation.warning] : [],
       });
 
       console.log(briefing.briefing);
       break;
     }
 
+    case 'doctor':
     case 'diag': {
-      console.log('\x1b[36mContext Fabric Diagnostic\x1b[0m');
-      console.log('Node:          ', process.version);
-      console.log('Platform:      ', process.platform);
-      console.log('Arch:          ', process.arch);
-      console.log('CWD:           ', process.cwd());
-      console.log('PATH (head):   ', process.env.PATH?.split(process.platform === 'win32' ? ';' : ':').slice(0, 5).join('\n               ') + '...');
-      
-      const hookPath = join(projectRoot, '.git', 'hooks', 'post-commit');
-      console.log('Hook installed:', existsSync(hookPath));
-      
-      const dbPath = join(projectRoot, '.context-fabric', 'cf.db');
-      console.log('Database exists:', existsSync(dbPath));
-      
-      if (process.platform === 'win32' && projectRoot.includes(' ')) {
-        console.log('Space Check:    \x1b[31mFAIL (Project path contains spaces)\x1b[0m');
-      } else {
-        console.log('Space Check:    \x1b[32mPASS\x1b[0m');
-      }
+      runDoctor(flags.has('--repair'));
       break;
     }
 
     default:
       console.log('Context Fabric — AI Project Continuity Infrastructure');
       console.log('\nCommands:');
-      console.log('  init       Initialise in current git repo');
-      console.log('  capture    Manual context capture');
-      console.log('  drift      Check for context drift');
-      console.log('  query      Generate AI briefing for a query');
-      console.log('  diag       Print diagnostic info for debugging');
+      console.log('  init          Initialise in current git repo');
+      console.log('  capture       Manual context capture');
+      console.log('  drift         Check for context drift');
+      console.log('  query         Generate AI briefing for a query');
+      console.log('  doctor        Print health and repair with --repair');
+      console.log('  diag          Compatibility alias for doctor');
       break;
   }
 }
 
 run().catch(err => {
-  console.error(`Error: ${err.message}`);
+  console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
   process.exit(1);
 });

@@ -2,6 +2,17 @@
 
 import { resolve, relative } from 'node:path';
 
+function hasControlCharacters(input: string): boolean {
+  for (const char of input) {
+    const code = char.charCodeAt(0);
+    if ((code >= 0x00 && code <= 0x1f) || code === 0x7f) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export class PathGuard {
   private readonly projectRoot: string;
 
@@ -16,11 +27,19 @@ export class PathGuard {
    * Returns the resolved absolute path if safe.
    */
   validate(inputPath: string): string {
+    if (hasControlCharacters(inputPath)) {
+      throw new Error(`SECURITY: Path contains control characters: "${inputPath}"`);
+    }
+
     const resolved = resolve(this.projectRoot, inputPath);
     const rel = relative(this.projectRoot, resolved);
 
     // Path traversal: relative path starts with '..' or is absolute outside root
-    if (rel.startsWith('..') || resolve(rel) === rel) {
+    if (
+      (rel !== '' && rel.startsWith('..')) ||
+      rel.includes(`..\\`) ||
+      rel.includes('../')
+    ) {
       throw new Error(
         `SECURITY: Path traversal rejected. ` +
         `Input "${inputPath}" resolves outside project root "${this.projectRoot}"`

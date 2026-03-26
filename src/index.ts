@@ -5,14 +5,20 @@ import { McpServer }           from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z }                   from 'zod';
 import { resolve, basename }   from 'node:path';
-import { getDb }               from './db/client.js';
-import { runWatcher, getGitSha } from './engines/watcher.js';
+import { ensureWritableDb, getDb } from './db/client.js';
+import {
+  ensureHeadCaptured,
+  getLatestSuccessfulCaptureId,
+  runWatcher,
+} from './engines/watcher.js';
 import { computeDrift }        from './engines/anchor.js';
 import { routeQuery, defaultRouterQuery } from './engines/router.js';
 import { selectWithinBudget }  from './engines/governor.js';
 import { composeBriefing, loadDecisions, loadSnapshot } from './engines/weaver.js';
+import { formatHealthReport, getHealthReport } from './health.js';
 import { PathGuard }           from './security/path-guard.js';
-import { cache }               from './cache/result-cache.js';
+import { sanitiseFileContent, sanitiseLabel } from './security/injection-guard.js';
+import { cache, makeCacheKey } from './cache/result-cache.js';
 
 const PROJECT_ROOT = resolve(process.cwd());
 const PROJECT_NAME = basename(PROJECT_ROOT);
@@ -23,8 +29,16 @@ guard.validate('.');
 
 const server = new McpServer({
   name:    'context-fabric',
-  version: '1.0.3',
+  version: '1.0.4',
 });
+
+function countActiveComponents(): number {
+  return (db.prepare(`
+    SELECT COUNT(*) AS total
+    FROM cf_components
+    WHERE status = 'active'
+  `).get() as { total: number }).total;
+}
 
 // ─── TOOL: cf_capture ────────────────────────────────────────────────────
 
@@ -38,7 +52,9 @@ server.tool(
     return {
       content: [{
         type: 'text' as const,
-        text: `Captured: ${result.captured} files | SHA: ${result.git_sha}`,
+        text: result.deferred
+          ? `Capture deferred for ${result.git_sha.slice(0, 12)} | pending run #${result.capture_id ?? 'n/a'}`
+          : `Captured: ${result.captured} files | SHA: ${result.git_sha} | Capture #${result.capture_id ?? 'n/a'}`,
       }],
     };
   },
@@ -51,15 +67,7 @@ server.tool(
   'Check context drift. Returns severity.',
   {},
   async () => {
-    const gitSha = getGitSha(PROJECT_ROOT);
-
-    const report = await cache.getOrCompute(
-      'drift_report',
-      gitSha,
-      () => computeDrift(db, PROJECT_ROOT),
-    );
-
-    if (!report) throw new Error('Failed to compute drift report');
+    const report = computeDrift(db, PROJECT_ROOT);
 
     return {
       content: [{
@@ -91,44 +99,34 @@ server.tool(
       .describe('Check drift and inject warnings. Default: true.'),
   },
   async ({ query, budget_pct = 0.08, model = 'default', include_drift = true }) => {
-    const gitSha = getGitSha(PROJECT_ROOT);
-    const cacheKey = `briefing:${query}:${budget_pct}:${model}`;
+    const reconciliation = ensureHeadCaptured(db, PROJECT_ROOT);
+    const captureId = reconciliation.capture_id ?? getLatestSuccessfulCaptureId(db);
+    const captureVersion = `capture:${captureId ?? 'none'}`;
+    const routeKey = makeCacheKey({
+      kind: 'route',
+      capture_id: captureId,
+      query,
+    });
 
-    const cached = await cache.getOrCompute(
-      cacheKey,
-      gitSha,
-      () => null as string | null,
-    );
-
-    if (cached !== null) {
-      return {
-        content: [{
-          type: 'text' as const,
-          text: cached as string,
-        }],
-      };
-    }
-
-    // E2 ANCHOR
-    const driftReport = include_drift
-      ? await cache.getOrCompute(
-          'drift_report',
-          gitSha,
-          () => computeDrift(db, PROJECT_ROOT),
-        )
-      : { drift_score: 0, severity: 'LOW' as const, stale: [], fresh: [],
-          checked_at: Date.now(), total_components: 0 };
-
-    if (!driftReport) throw new Error('Drift report unavailable');
-
-    // E3 ROUTER
     const routerResult = await cache.getOrCompute(
-      `route:${query}`,
-      gitSha,
+      routeKey,
+      captureVersion,
       () => routeQuery(db, defaultRouterQuery(query)),
     );
 
     if (!routerResult) throw new Error('Router result unavailable');
+
+    const totalComponents = countActiveComponents();
+    const driftReport = include_drift
+      ? computeDrift(db, PROJECT_ROOT)
+      : {
+          drift_score: 0,
+          severity: 'LOW' as const,
+          stale: [],
+          fresh: [],
+          checked_at: Date.now(),
+          total_components: totalComponents,
+        };
 
     // E4 GOVERNOR
     const budgetResult = selectWithinBudget(
@@ -146,18 +144,55 @@ server.tool(
       decisions,
       snapshot,
       projectName: PROJECT_NAME,
+      operationalWarnings: reconciliation.warning ? [reconciliation.warning] : [],
     });
 
-    cache.store.set(cacheKey, {
-      value:        output.briefing,
-      computed_at:  Date.now(),
-      git_sha:      gitSha,
+    const canCacheBriefing = !include_drift && !reconciliation.warning;
+    if (!canCacheBriefing) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: output.briefing,
+        }],
+      };
+    }
+
+    const briefingKey = makeCacheKey({
+      kind: 'briefing',
+      capture_id: captureId,
+      query,
+      budget_pct,
+      model,
+      include_drift,
     });
+
+    const briefing = await cache.getOrCompute(
+      briefingKey,
+      captureVersion,
+      () => output.briefing,
+    );
 
     return {
       content: [{
         type: 'text' as const,
-        text: output.briefing,
+        text: briefing ?? output.briefing,
+      }],
+    };
+  },
+);
+
+// ─── TOOL: cf_health ─────────────────────────────────────────────────────
+
+server.tool(
+  'cf_health',
+  'Report local database, capture, and hook health.',
+  {},
+  async () => {
+    const report = getHealthReport(db, PROJECT_ROOT);
+    return {
+      content: [{
+        type: 'text' as const,
+        text: formatHealthReport(report),
       }],
     };
   },
@@ -175,14 +210,15 @@ server.tool(
                 .describe('Optional tags.'),
   },
   async ({ title, rationale, tags }) => {
+    ensureWritableDb();
     cache.invalidateAll();
 
     db.prepare(`
       INSERT INTO cf_decisions (title, rationale, status, captured_at, tags)
       VALUES (@title, @rationale, 'active', @captured_at, @tags)
     `).run({
-      title:       title.slice(0, 120),
-      rationale:   rationale.slice(0, 600),
+      title:       sanitiseLabel(title, 120),
+      rationale:   sanitiseFileContent(rationale, 'decision').slice(0, 600),
       captured_at: Date.now(),
       tags:        tags && tags.length > 0 ? JSON.stringify(tags) : null,
     });
@@ -190,7 +226,7 @@ server.tool(
     return {
       content: [{
         type: 'text' as const,
-        text: `Decision logged: "${title.slice(0, 60)}"`,
+        text: `Decision logged: "${sanitiseLabel(title, 60)}"`,
       }],
     };
   },
