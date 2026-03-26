@@ -26,7 +26,10 @@ jobs:
         cache: 'npm'
         
     - name: Install dependencies
-      run: npm ci
+      # WHY: Vitest 4 pulls rolldown native bindings via optionalDependencies.
+      # GitHub Actions/npm can occasionally skip those platform bindings unless
+      # optional deps are explicitly included during clean install.
+      run: npm ci --include=optional
       
     - name: Run Linter
       run: npm run lint

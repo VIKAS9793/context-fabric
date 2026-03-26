@@ -27,7 +27,9 @@ jobs:
         cache: 'npm'
         
     - name: Install dependencies
-      run: npm ci
+      # WHY: Keep workflow installs aligned with CI so optional native deps are
+      # always present on the runner.
+      run: npm ci --include=optional
       
     - name: Run Linter
       run: npm run lint
