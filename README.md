@@ -15,7 +15,7 @@
 
 ---
 
-Current stable release: `v1.0.4`. See [CHANGELOG.md](CHANGELOG.md) for the release notes.
+Current stable release: `v1.0.5`. See [CHANGELOG.md](CHANGELOG.md) for the release notes.
 
 ### **Official Registry Support**
 Context Fabric is configured for official inclusion in the **Model Context Protocol (MCP) Registry**. 
@@ -265,7 +265,8 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 - [Developer Guide](docs/DEVELOPER_GUIDE.md)
 - [FAQ](docs/FAQ.md)
 - [Use Cases and Limitations](docs/USE_CASES.md)
-- [Wiki Home](docs/wiki/Home.md)
+- [Wiki Home Source](docs/wiki/Home.md)
+- [Wiki Publishing Guide](docs/wiki/README.md)
 - [Security Policy](SECURITY.md)
 - [Changelog](CHANGELOG.md)
 

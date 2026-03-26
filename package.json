@@ -1,6 +1,6 @@
 {
   "name": "context-fabric",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "mcpName": "io.github.VIKAS9793/context-fabric",
   "description": "Context synchronization layer for AI coding agents — ensure project continuity and eliminate memory drift automatically.",
   "keywords": [

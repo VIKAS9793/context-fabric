@@ -1,6 +1,8 @@
 # Context Fabric Wiki Home
 
-This page is a GitHub Wiki-ready landing page for the project.
+This file is the source content for the GitHub Wiki home page.
+
+It does not automatically appear in the GitHub Wiki tab. GitHub Wikis use a separate `.wiki.git` repository that must be enabled and published independently.
 
 ## What Context Fabric Does
 
@@ -8,12 +10,12 @@ Context Fabric is a local-first MCP server that captures Git-backed project stat
 
 ## Start Here
 
-- [README](../../README.md) for install and MCP setup
-- [Developer Guide](../DEVELOPER_GUIDE.md) for maintainers and contributors
-- [FAQ](../FAQ.md) for common operational and adoption questions
-- [Use Cases and Limitations](../USE_CASES.md) for adoption guidance
-- [Security Policy](../../SECURITY.md) for the threat model and disclosure path
-- [Changelog](../../CHANGELOG.md) for release history
+- [README](https://github.com/VIKAS9793/context-fabric/blob/main/README.md) for install and MCP setup
+- [Developer Guide](https://github.com/VIKAS9793/context-fabric/blob/main/docs/DEVELOPER_GUIDE.md) for maintainers and contributors
+- [FAQ](https://github.com/VIKAS9793/context-fabric/blob/main/docs/FAQ.md) for common operational and adoption questions
+- [Use Cases and Limitations](https://github.com/VIKAS9793/context-fabric/blob/main/docs/USE_CASES.md) for adoption guidance
+- [Security Policy](https://github.com/VIKAS9793/context-fabric/blob/main/SECURITY.md) for the threat model and disclosure path
+- [Changelog](https://github.com/VIKAS9793/context-fabric/blob/main/CHANGELOG.md) for release history
 
 ## Core Commands
 

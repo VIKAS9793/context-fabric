@@ -10,7 +10,7 @@ body:
     id: version
     attributes:
       label: Context Fabric Version
-      description: What version are you running? (e.g., 1.0.4)
+      description: What version are you running? (e.g., 1.0.5)
     validations:
       required: true
   - type: dropdown

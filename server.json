@@ -3,7 +3,7 @@
   "name": "io.github.VIKAS9793/context-fabric",
   "title": "Context Fabric",
   "description": "Context sync layer for AI agents. Ensures continuity and eliminates memory drift automatically.",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "repository": {
     "url": "https://github.com/VIKAS9793/context-fabric",
     "source": "github"
@@ -12,7 +12,7 @@
     {
       "registryType": "npm",
       "identifier": "context-fabric",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"

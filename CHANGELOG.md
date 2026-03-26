@@ -7,6 +7,16 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.5] — 2026-03-26
+
+### Fixed
+- Fixed GitHub Actions installs to include optional native dependencies required by Vitest and rolldown on Linux runners.
+
+### Changed
+- Clarified that `docs/wiki/*` are source files for the GitHub Wiki and do not populate the Wiki tab until the repository wiki is enabled and published separately.
+
+---
+
 ## [1.0.4] — 2026-03-26
 
 ### Added
