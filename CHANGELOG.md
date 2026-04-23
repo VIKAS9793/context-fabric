@@ -7,7 +7,11 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [1.0.6] — 2026-04-23
+## [1.0.7] — 2026-04-23
+
+### Fixed
+- **Release Fix:** Corrected a broken publish in `1.0.6` where the `dist/` directory was not included in the npm tarball. All binaries and entry points are now properly bundled.
+
 
 ### Security
 - **CF-SEC-01:** Bumped transitive `brace-expansion` to `>= 1.1.13` to close [GHSA-f886-m6hf-6m8v](https://github.com/advisories/GHSA-f886-m6hf-6m8v) (moderate, CWE-400 / ReDoS). Fixed via `npm audit fix`; no production dependency changes.

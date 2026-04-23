@@ -29,7 +29,7 @@ guard.validate('.');
 
 const server = new McpServer({
   name:    'context-fabric',
-  version: '1.0.6',
+  version: '1.0.7',
 });
 
 function countActiveComponents(): number {
