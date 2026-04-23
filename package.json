@@ -1,6 +1,6 @@
 {
   "name": "context-fabric",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "mcpName": "io.github.VIKAS9793/context-fabric",
   "description": "Context synchronization layer for AI coding agents — ensure project continuity and eliminate memory drift automatically.",
   "keywords": [
@@ -53,7 +53,7 @@
     "ci:check": "npm ci && npm run build && npm test && npm run release:check"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.27.1",
+    "@modelcontextprotocol/sdk": "1.29.0",
     "better-sqlite3": "12.8.0",
     "zod": "^4.3.6"
   },

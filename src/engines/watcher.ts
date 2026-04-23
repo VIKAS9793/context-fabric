@@ -73,11 +73,31 @@ interface HeadReconcileResult {
   warning: string | null;
 }
 
+// SECURITY: Never invoke git through a shell — all callers pass hardcoded
+// argv arrays. `spawnSync` with `shell: false` (default) means arguments are
+// passed directly to execve(2); no metacharacter interpretation is possible.
+// Additionally we disable external credential helpers, hooks, and any per-
+// repo git aliases so an attacker with repo write access cannot hijack git
+// invocations made by the MCP server or post-commit runner.
+const GIT_HARDENED_CONFIG: readonly string[] = [
+  '-c', 'core.hooksPath=/dev/null',
+  '-c', 'core.alternateRefsCommand=',
+  '-c', 'protocol.ext.allow=never',
+  '-c', 'protocol.file.allow=never',
+  '-c', 'uploadpack.allowFilter=false',
+  '-c', 'credential.helper=',
+];
+
+function git(args: string[]): string[] {
+  return [...GIT_HARDENED_CONFIG, ...args];
+}
+
 function runGit(args: string[], cwd: string): string {
-  const result = spawnSync('git', args, {
+  const result = spawnSync('git', git(args), {
     cwd,
     encoding: 'utf8',
     stdio: ['pipe', 'pipe', 'pipe'],
+    shell: false,
   });
 
   if (result.status !== 0) {
@@ -88,10 +108,11 @@ function runGit(args: string[], cwd: string): string {
 }
 
 function runGitBuffer(args: string[], cwd: string, input?: string): Buffer {
-  const result = spawnSync('git', args, {
+  const result = spawnSync('git', git(args), {
     cwd,
     input,
     stdio: ['pipe', 'pipe', 'pipe'],
+    shell: false,
   });
 
   if (result.status !== 0 || !result.stdout) {
@@ -267,17 +288,32 @@ function filterSafeChanges(projectRoot: string, changes: GitChange[]): GitChange
   return safe;
 }
 
+// SECURITY: Git refs flow in from `git rev-parse HEAD` and user-facing tool
+// calls. We validate that refs are 40- or 64-character lowercase hex before
+// passing them as arguments, and additionally prepend `--end-of-options` so
+// a ref such as `--upload-pack=...` cannot be interpreted as a git flag.
+const SHA_PATTERN = /^[0-9a-f]{4,64}$/;
+
+function assertGitRef(sha: string, label: string): void {
+  if (!SHA_PATTERN.test(sha)) {
+    throw new Error(`SECURITY: Invalid ${label} ref: "${sha}"`);
+  }
+}
+
 function getLastCommitChanges(projectRoot: string, gitSha: string): GitChange[] {
+  assertGitRef(gitSha, 'commit');
   const tokens = runGitNullSeparated(
-    ['diff-tree', '--no-commit-id', '--name-status', '-r', '-z', '--root', '--find-renames', gitSha],
+    ['diff-tree', '--no-commit-id', '--name-status', '-r', '-z', '--root', '--find-renames', '--end-of-options', gitSha],
     projectRoot,
   );
   return filterSafeChanges(projectRoot, parseNameStatus(tokens));
 }
 
 function getDiffChanges(projectRoot: string, baseSha: string, targetSha: string): GitChange[] {
+  assertGitRef(baseSha, 'base');
+  assertGitRef(targetSha, 'target');
   const tokens = runGitNullSeparated(
-    ['diff', '--name-status', '-r', '-z', '--find-renames', baseSha, targetSha],
+    ['diff', '--name-status', '-r', '-z', '--find-renames', '--end-of-options', baseSha, targetSha],
     projectRoot,
   );
   return filterSafeChanges(projectRoot, parseNameStatus(tokens));
@@ -291,7 +327,8 @@ function getFullCaptureChanges(projectRoot: string): GitChange[] {
 
 export function getGitSha(projectRoot: string): string {
   try {
-    return runGit(['rev-parse', 'HEAD'], projectRoot).trim();
+    const sha = runGit(['rev-parse', '--verify', '--end-of-options', 'HEAD'], projectRoot).trim();
+    return SHA_PATTERN.test(sha) ? sha : 'unknown';
   } catch {
     return 'unknown';
   }
@@ -375,10 +412,18 @@ function getPendingCaptureForSha(
 }
 
 function isAncestor(projectRoot: string, ancestorSha: string, descendantSha: string): boolean {
-  const result = spawnSync('git', ['merge-base', '--is-ancestor', ancestorSha, descendantSha], {
-    cwd: projectRoot,
-    stdio: ['pipe', 'pipe', 'pipe'],
-  });
+  if (!SHA_PATTERN.test(ancestorSha) || !SHA_PATTERN.test(descendantSha)) {
+    return false;
+  }
+  const result = spawnSync(
+    'git',
+    git(['merge-base', '--is-ancestor', '--end-of-options', ancestorSha, descendantSha]),
+    {
+      cwd: projectRoot,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      shell: false,
+    },
+  );
   return result.status === 0;
 }
 
@@ -420,7 +465,13 @@ function createPlanFromLatestCapture(
 }
 
 function readCommitSummary(projectRoot: string, gitSha: string): string {
-  const summary = runGit(['log', '-1', '--oneline', gitSha], projectRoot).trim();
+  if (!SHA_PATTERN.test(gitSha)) {
+    return sanitiseLabel(gitSha, 200);
+  }
+  const summary = runGit(
+    ['log', '-1', '--format=%h %s', '--end-of-options', gitSha],
+    projectRoot,
+  ).trim();
   return sanitiseLabel(summary || gitSha, 200);
 }
 

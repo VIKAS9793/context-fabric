@@ -32,7 +32,7 @@ These versions are locked. Do not change them in a PR without an accompanying is
 
 | Package | Pinned version |
 |---|---|
-| `@modelcontextprotocol/sdk` | `1.27.1` |
+| `@modelcontextprotocol/sdk` | `1.29.0` |
 | `better-sqlite3` | `12.8.0` |
 | `zod` | `^4.3.6` |
 

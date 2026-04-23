@@ -6,7 +6,7 @@
 // No mocking. Real filesystem. Real SHA256. Real SQLite.
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
+import { writeFileSync, mkdirSync, rmSync, existsSync, symlinkSync } from 'node:fs';
 import { join }          from 'node:path';
 import { createHash }    from 'node:crypto';
 import { tmpdir }        from 'node:os';
@@ -107,6 +107,42 @@ describe('E2 Anchor — computeDrift', () => {
     expect(report.drift_score).toBe(0);
     expect(report.severity).toBe('LOW');
     expect(report.total_components).toBe(0);
+  });
+
+  it('matches Watcher-style raw-Buffer SHA256 for UTF-8-with-BOM files', () => {
+    // Watcher hashes the raw git blob (bytes including BOM).
+    // Anchor must hash the raw bytes too — not a utf-8-decoded string.
+    const bom = Buffer.from([0xef, 0xbb, 0xbf]);
+    const body = Buffer.from('export const x = 1;\n', 'utf8');
+    const buffer = Buffer.concat([bom, body]);
+    writeFileSync(join(testRoot, 'bom.ts'), buffer);
+
+    const expected = createHash('sha256').update(buffer).digest('hex');
+    seedComponent(db, { path: 'bom.ts', sha256: expected });
+
+    const report = computeDrift(db, testRoot);
+    expect(report.severity).toBe('LOW');
+    expect(report.stale).toHaveLength(0);
+  });
+
+  it('rejects symlinks that escape the project root', () => {
+    const outsideDir = join(tmpdir(), `cf-anchor-out-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    mkdirSync(outsideDir, { recursive: true });
+    try {
+      const outsideFile = join(outsideDir, 'secret.txt');
+      writeFileSync(outsideFile, 'secret');
+      const linkPath = join(testRoot, 'escape.ts');
+      symlinkSync(outsideFile, linkPath);
+
+      seedComponent(db, { path: 'escape.ts', sha256: 'whatever' });
+      const report = computeDrift(db, testRoot);
+
+      const entry = report.stale.find(s => s.path === 'escape.ts');
+      expect(entry).toBeDefined();
+      expect(entry?.current_sha).toBe('TRAVERSAL_REJECTED');
+    } finally {
+      rmSync(outsideDir, { recursive: true, force: true });
+    }
   });
 
 });

@@ -5,7 +5,7 @@ import { McpServer }           from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z }                   from 'zod';
 import { resolve, basename }   from 'node:path';
-import { ensureWritableDb, getDb } from './db/client.js';
+import { closeDb, ensureWritableDb, getDb } from './db/client.js';
 import {
   ensureHeadCaptured,
   getLatestSuccessfulCaptureId,
@@ -29,7 +29,7 @@ guard.validate('.');
 
 const server = new McpServer({
   name:    'context-fabric',
-  version: '1.0.5',
+  version: '1.0.6',
 });
 
 function countActiveComponents(): number {
@@ -89,11 +89,11 @@ server.tool(
   'cf_query',
   'Get project context briefing.',
   {
-    query: z.string().min(1)
+    query: z.string().min(1).max(4096)
       .describe('What context you need. Task description, component name, or question.'),
     budget_pct: z.number().min(0.01).max(0.20).optional().default(0.08)
       .describe('Fraction of model context window to use. Default: 0.08'),
-    model: z.string().optional().default('default')
+    model: z.string().max(120).optional().default('default')
       .describe('Model name for context size lookup. Default: 200K tokens.'),
     include_drift: z.boolean().optional().default(true)
       .describe('Check drift and inject warnings. Default: true.'),
@@ -232,6 +232,29 @@ server.tool(
   },
 );
 
+// ─── SHUTDOWN HANDLERS ────────────────────────────────────────────────────
+
+// SECURITY / RELIABILITY: better-sqlite3 uses WAL mode; a process killed
+// without calling `db.close()` can leave the WAL file unmerged. Closing on
+// SIGINT / SIGTERM ensures the on-disk state is consistent and that other
+// processes (e.g. the git hook) can reopen the database without being
+// blocked by a stale lock.
+let shuttingDown = false;
+function gracefulShutdown(signal: NodeJS.Signals): void {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  try {
+    closeDb();
+  } catch (err) {
+    process.stderr.write(`[CF] Error closing db on ${signal}: ${err}\n`);
+  }
+  process.exit(0);
+}
+
+process.on('SIGINT',  () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGHUP',  () => gracefulShutdown('SIGHUP'));
+
 // ─── START ────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -241,5 +264,6 @@ async function main() {
 
 main().catch(err => {
   process.stderr.write(`[CF] Fatal: ${err}\n`);
+  try { closeDb(); } catch { /* best effort */ }
   process.exit(1);
 });
