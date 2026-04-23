@@ -92,8 +92,25 @@ function createMigrationBackup(
   fromVersion: number,
 ): string | null {
   const backupPath = join(dir, `cf.db.backup.v${fromVersion}.${Date.now()}.sqlite`);
-  const escapedPath = backupPath.replace(/'/g, "''");
-  db.exec(`VACUUM INTO '${escapedPath}'`);
+
+  // SECURITY: SQLite's VACUUM INTO does not support bound parameters for
+  // the destination filename, so it must be interpolated into the SQL
+  // string. Reject any path that contains characters which could break
+  // out of the single-quoted literal (quotes, NUL bytes, newlines). The
+  // path is constructed locally from `dir` and a fixed basename, so in
+  // practice only a malicious `projectRoot` could exercise this — but the
+  // assertion keeps the trust boundary explicit.
+  // SQLite does not interpret backslash escapes inside '...' literals, so
+  // backslashes in Windows paths are safe. We only need to block control
+  // characters and the single quote used to escape the literal.
+  // eslint-disable-next-line no-control-regex
+  if (/['\u0000-\u001f\u007f]/.test(backupPath)) {
+    throw new Error(
+      `SECURITY: Refusing to create migration backup — unsafe characters in path`
+    );
+  }
+
+  db.exec(`VACUUM INTO '${backupPath.replace(/'/g, "''")}'`);
   return backupPath;
 }
 

@@ -10,12 +10,12 @@
 [![Status: Stable](https://img.shields.io/badge/status-stable-10b981?labelColor=0d1117)](https://github.com/VIKAS9793/context-fabric)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?labelColor=0d1117)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D22.0.0_--_24.x-brightgreen?labelColor=0d1117)](https://nodejs.org)
-[![MCP SDK](https://img.shields.io/badge/MCP_SDK-1.27.1-7c3aed?labelColor=0d1117)](https://modelcontextprotocol.io)
+[![MCP SDK](https://img.shields.io/badge/MCP_SDK-1.29.0-7c3aed?labelColor=0d1117)](https://modelcontextprotocol.io)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5%2B-3178c6?labelColor=0d1117)](https://typescriptlang.org)
 
 ---
 
-Current stable release: `v1.0.5`. See [CHANGELOG.md](CHANGELOG.md) for the release notes.
+Current stable release: `v1.0.6`. See [CHANGELOG.md](CHANGELOG.md) for the release notes.
 
 ### **Official Registry Support**
 Context Fabric is configured for official inclusion in the **Model Context Protocol (MCP) Registry**. 
@@ -226,7 +226,7 @@ Full FAQ: [docs/FAQ.md](docs/FAQ.md)
 
 | Layer | Package | Version |
 |---|---|---|
-| MCP Protocol | `@modelcontextprotocol/sdk` | `1.27.1` |
+| MCP Protocol | `@modelcontextprotocol/sdk` | `1.29.0` |
 | Storage and search | `better-sqlite3` + FTS5 | `12.8.0` |
 | Schema validation | `zod` | `^4.3.6` |
 | Language | TypeScript | `5.5+` |

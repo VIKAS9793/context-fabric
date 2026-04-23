@@ -96,6 +96,22 @@ describe('E3 Router — routeQuery', () => {
     expect(result.ranked.length).toBeLessThanOrEqual(10);
   });
 
+  it('caps oversized raw queries before running the FTS sanitiser', () => {
+    seedComponent(db, {
+      path:    'src/auth/middleware.ts',
+      sha256:  'xxx',
+      exports: JSON.stringify(['authenticate']),
+    });
+
+    const huge = 'auth '.repeat(5000); // ~25 000 chars
+    const start = Date.now();
+    const result = routeQuery(db, defaultRouterQuery(huge));
+    const elapsed = Date.now() - start;
+
+    expect(elapsed).toBeLessThan(1000);
+    expect(result.ranked.length).toBeGreaterThan(0);
+  });
+
   it('assigns 1-based ranks in order', () => {
     seedComponent(db, {
       path:    'src/auth/handler.ts',

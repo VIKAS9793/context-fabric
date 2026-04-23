@@ -9,7 +9,7 @@ updates:
       - dependency-name: "*"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
     # Manual review still required for security fixes in pinned deps:
-    # MCP SDK 1.27.1, better-sqlite3 12.8.0
+    # MCP SDK 1.29.0, better-sqlite3 12.8.0
 
   - package-ecosystem: "github-actions"
     directory: "/"

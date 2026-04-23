@@ -3,10 +3,16 @@
 // Compares stored SHA256 against current file state.
 
 import { createHash } from 'node:crypto';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import type Database from 'better-sqlite3';
 import type { DriftReport, StaleEntry } from '../types.js';
 import { PathGuard } from '../security/path-guard.js';
+
+// Hard cap on the per-file size we will read into memory for drift hashing.
+// Prevents a pathological multi-gigabyte file from OOMing the drift check.
+// Matches the effective upper bound the Watcher already treats as "too big
+// to index" plus generous headroom for text files that still pass indexing.
+const MAX_DRIFT_BYTES = 64 * 1024 * 1024; // 64 MiB
 
 export function computeDrift(db: Database.Database, projectRoot: string): DriftReport {
   const guard = new PathGuard(projectRoot);
@@ -25,27 +31,46 @@ export function computeDrift(db: Database.Database, projectRoot: string): DriftR
 
     let absPath: string;
     try {
-      // SECURITY (Doc 06 Part 8): Validate path before read
-      absPath = guard.validate(relPath);
+      // SECURITY: Validate path before read. resolveSymlinks prevents a
+      // symlink placed under the project root from redirecting the read
+      // outside the project root.
+      absPath = guard.validate(relPath, { resolveSymlinks: true });
     } catch {
       stale.push({ path: relPath, stored_sha: storedHash, current_sha: 'TRAVERSAL_REJECTED' });
       continue;
     }
 
-    if (!existsSync(absPath)) {
+    let size: number;
+    try {
+      const stats = statSync(absPath);
+      if (!stats.isFile()) {
+        stale.push({ path: relPath, stored_sha: storedHash, current_sha: 'DELETED' });
+        continue;
+      }
+      size = stats.size;
+    } catch {
       stale.push({ path: relPath, stored_sha: storedHash, current_sha: 'DELETED' });
       continue;
     }
 
-    let content: string;
+    if (size > MAX_DRIFT_BYTES) {
+      stale.push({ path: relPath, stored_sha: storedHash, current_sha: 'OVERSIZE' });
+      continue;
+    }
+
+    let buffer: Buffer;
     try {
-      content = readFileSync(absPath, 'utf8');
+      buffer = readFileSync(absPath);
     } catch {
       stale.push({ path: relPath, stored_sha: storedHash, current_sha: 'UNREADABLE' });
       continue;
     }
 
-    const currentHash = createHash('sha256').update(content).digest('hex');
+    // Hash the raw bytes — the Watcher hashes the raw git blob buffer, so
+    // Anchor must do the same. Hashing a utf-8 decoded string would
+    // mis-report drift for any content that isn't pure ASCII (BOM-prefixed
+    // files, CRLF-normalised checkouts, non-utf-8 encodings, binaries).
+    const currentHash = createHash('sha256').update(buffer).digest('hex');
 
     if (currentHash === storedHash) {
       fresh.push({ path: relPath });

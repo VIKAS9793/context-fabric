@@ -45,9 +45,21 @@ import type { RouterQuery, RouterResult, RankedComponent } from '../types.js';
 // FTS5 boolean operators — must be stripped, not treated as search terms
 const FTS5_RESERVED = new Set(['OR', 'AND', 'NOT']);
 
+// Maximum raw query length accepted for sanitisation. Callers already cap
+// user-facing query size at the MCP tool boundary; this is defence in depth
+// against an excessively large input being piped through regex work.
+const MAX_RAW_QUERY_LEN = 4096;
+
 function sanitiseFtsQuery(raw: string): string {
+  if (typeof raw !== 'string') return '';
+
+  // DoS guard: cap raw input length before any regex work.
+  const bounded = raw.length > MAX_RAW_QUERY_LEN
+    ? raw.slice(0, MAX_RAW_QUERY_LEN)
+    : raw;
+
   // Step 1: strip FTS5 special characters
-  const stripped = raw
+  const stripped = bounded
     .replace(/[+\-*^()":.]/g, ' ')     // remove all FTS5 operators
     .replace(/\s+/g, ' ')              // collapse whitespace
     .trim();
