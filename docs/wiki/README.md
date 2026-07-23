@@ -37,4 +37,4 @@ On Windows PowerShell, use `Copy-Item` instead of `cp`.
 
 ## Current State
 
-At release `v1.2.0`, the main repository contains wiki source content, but the GitHub wiki repository itself is not present yet.
+At release `v1.2.1`, the main repository contains wiki source content, but the GitHub wiki repository itself is not present yet.

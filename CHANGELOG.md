@@ -7,7 +7,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [1.2.0] — 2026-07-23
+## [1.2.1] — 2026-07-23
 
 ### Added
 - Developer Adoption features:

@@ -65,7 +65,7 @@ export function pingTelemetryIfNeeded(): void {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       os: process.platform,
-      version: '1.2.0',
+      version: '1.2.1',
       timestamp: new Date().toISOString()
     })
   }).catch(() => {
