@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Context Fabric — Analytics Dashboard</title>
+  <meta name="description" content="Real-time product analytics for Context Fabric MCP server. Track npm downloads, GitHub stars, and growth metrics.">
+
+  <!-- M3 Expressive: Google Fonts — Inter (Variable) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..800&display=swap" rel="stylesheet">
+
+  <!-- Chart.js 4 + Date Adapter -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ─── TOP APP BAR ─────────────────────────────────────────────── -->
+  <header class="app-bar">
+    <div class="app-bar__leading">
+      <div class="app-bar__icon">⬡</div>
+      <div>
+        <h1 class="app-bar__title">Context Fabric</h1>
+        <span class="app-bar__subtitle">Product Analytics</span>
+      </div>
+    </div>
+    <div class="app-bar__actions">
+      <span id="lastUpdated" class="status-chip">
+        <span class="status-chip__dot"></span>
+        <span id="lastUpdatedText">Loading…</span>
+      </span>
+      <button id="themeToggle" class="icon-btn" aria-label="Toggle theme" title="Toggle light/dark">
+        <span class="icon-btn__icon" id="themeIcon">🌙</span>
+      </button>
+      <button id="exportBtn" class="filled-btn" aria-label="Export report">
+        <span>⤓</span> Export
+      </button>
+    </div>
+  </header>
+
+  <main class="dashboard">
+
+    <!-- ─── KPI CARDS ───────────────────────────────────────────── -->
+    <section class="kpi-grid" aria-label="Key metrics">
+      <article class="kpi-card kpi-card--primary" style="--stagger: 0">
+        <span class="kpi-card__label">Total Downloads</span>
+        <span class="kpi-card__value" id="kpiTotal">—</span>
+        <span class="kpi-card__sub" id="kpiTotalSub">lifetime</span>
+      </article>
+      <article class="kpi-card kpi-card--secondary" style="--stagger: 1">
+        <span class="kpi-card__label">Monthly Downloads</span>
+        <span class="kpi-card__value" id="kpiMonthly">—</span>
+        <span class="kpi-card__sub" id="kpiMonthlySub">last 30 days</span>
+      </article>
+      <article class="kpi-card kpi-card--tertiary" style="--stagger: 2">
+        <span class="kpi-card__label">Growth</span>
+        <span class="kpi-card__value" id="kpiGrowth">—</span>
+        <span class="kpi-card__sub" id="kpiGrowthSub">vs previous period</span>
+      </article>
+      <article class="kpi-card kpi-card--surface" style="--stagger: 3">
+        <span class="kpi-card__label">GitHub Stars</span>
+        <span class="kpi-card__value" id="kpiStars">—</span>
+        <span class="kpi-card__sub" id="kpiStarsSub">stargazers</span>
+      </article>
+    </section>
+
+    <!-- ─── PRIMARY CHART: Download Trends ──────────────────────── -->
+    <section class="chart-section chart-section--full" style="--stagger: 4">
+      <div class="chart-header">
+        <div>
+          <h2 class="chart-title">📈 Download Trends</h2>
+          <p class="chart-desc">Daily npm downloads over time</p>
+        </div>
+        <div class="segmented-btns" role="group" aria-label="Time range filter">
+          <button class="seg-btn seg-btn--active" data-range="7">7d</button>
+          <button class="seg-btn" data-range="30">30d</button>
+          <button class="seg-btn" data-range="90">90d</button>
+          <button class="seg-btn" data-range="all">All</button>
+        </div>
+      </div>
+      <div class="chart-container chart-container--large">
+        <canvas id="chartDownloads"></canvas>
+      </div>
+    </section>
+
+    <!-- ─── SECONDARY CHARTS: Side-by-side ──────────────────────── -->
+    <div class="chart-grid">
+      <section class="chart-section" style="--stagger: 5">
+        <div class="chart-header">
+          <div>
+            <h2 class="chart-title">📊 Weekly Breakdown</h2>
+            <p class="chart-desc">Downloads per week</p>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="chartWeekly"></canvas>
+        </div>
+      </section>
+
+      <section class="chart-section" style="--stagger: 6">
+        <div class="chart-header">
+          <div>
+            <h2 class="chart-title">👥 GitHub Traffic</h2>
+            <p class="chart-desc">Clones &amp; unique visitors (14-day)</p>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="chartTraffic"></canvas>
+        </div>
+      </section>
+    </div>
+
+    <!-- ─── CUMULATIVE GROWTH CHART ─────────────────────────────── -->
+    <section class="chart-section chart-section--full" style="--stagger: 7">
+      <div class="chart-header">
+        <div>
+          <h2 class="chart-title">📉 Cumulative Growth</h2>
+          <p class="chart-desc">Total lifetime download trajectory</p>
+        </div>
+      </div>
+      <div class="chart-container chart-container--large">
+        <canvas id="chartCumulative"></canvas>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ─── STATUS FOOTER ───────────────────────────────────────────── -->
+  <footer class="status-bar">
+    <span>Data collected daily at 00:00 UTC via GitHub Actions</span>
+    <span id="nextRefresh"></span>
+  </footer>
+
+  <!-- ─── EXPORT MODAL ────────────────────────────────────────────── -->
+  <dialog id="exportModal" class="export-modal">
+    <div class="export-modal__content">
+      <h3 class="export-modal__title">Export Report</h3>
+      <p class="export-modal__desc">Download your analytics data</p>
+      <div class="export-modal__actions">
+        <button class="outlined-btn" id="exportCSV">📄 Export CSV</button>
+        <button class="outlined-btn" id="exportJSON">📋 Export JSON</button>
+      </div>
+      <button class="text-btn" id="exportClose">Close</button>
+    </div>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
