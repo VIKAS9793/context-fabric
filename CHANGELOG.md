@@ -7,6 +7,14 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.2.0] — 2026-07-23
+
+### Added
+- Developer Adoption features:
+  - Claude Desktop auto-setup (`npx context-fabric install-claude`).
+  - Anonymous opt-in telemetry to track daily active usage (configured via `~/.context-fabric-global.json`).
+  - GitHub star prompt on 10th and 50th successful CLI run to build community.
+
 ## [1.1.0] — 2026-07-23
 
 ### Added

@@ -16,6 +16,12 @@ import { rebuildSearchIndex } from './db/search-index.js';
 import { formatHealthReport, getHealthReport } from './health.js';
 import { getContextFabricPaths } from './project-paths.js';
 import {
+  readGlobalConfig,
+  updateTelemetryPreference,
+  incrementRunCount,
+  pingTelemetryIfNeeded,
+} from './config.js';
+import {
   copyFileSync,
   existsSync,
   mkdirSync,
@@ -25,7 +31,9 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
+import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import * as readline from 'node:readline/promises';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -161,6 +169,18 @@ async function run(): Promise<void> {
     case 'init': {
       console.log('Initialising Context Fabric...');
 
+      const globalConfig = readGlobalConfig();
+      if (globalConfig.telemetryOptIn === undefined) {
+        const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+        const answer = await rl.question(
+          '\nWould you like to opt-in to anonymous usage telemetry to help improve Context Fabric? (y/N): '
+        );
+        rl.close();
+        updateTelemetryPreference(answer.trim().toLowerCase() === 'y');
+        console.log('Preference saved. Thank you!\n');
+      }
+      pingTelemetryIfNeeded();
+
       if (process.platform === 'win32' && projectRoot.includes(' ')) {
         console.warn(
           '\x1b[33mWarning:\x1b[0m project path contains spaces. ' +
@@ -191,7 +211,14 @@ async function run(): Promise<void> {
         ? runHookCapture(db, projectRoot)
         : runWatcher(db, projectRoot);
 
+      if (!fromHook) pingTelemetryIfNeeded();
+
       if (!silent) {
+        const currentCount = incrementRunCount();
+        if (currentCount === 10 || currentCount === 50) {
+          console.log('\n> Context Fabric is running smoothly! If it\'s saving you time, consider starring us on GitHub: https://github.com/VIKAS9793/context-fabric ⭐\n');
+        }
+
         if (result.deferred) {
           console.log(`Deferred capture for ${result.git_sha}. Pending run #${result.capture_id ?? 'n/a'}`);
         } else {
@@ -212,6 +239,12 @@ async function run(): Promise<void> {
     }
 
     case 'query': {
+      pingTelemetryIfNeeded();
+      const currentCount = incrementRunCount();
+      if (currentCount === 10 || currentCount === 50) {
+        console.log('\n> Context Fabric is running smoothly! If it\'s saving you time, consider starring us on GitHub: https://github.com/VIKAS9793/context-fabric ⭐\n');
+      }
+
       const reconciliation = ensureHeadCaptured(db, projectRoot);
       const snapshot = loadSnapshot(db);
       const decisions = loadDecisions(db);
@@ -237,10 +270,40 @@ async function run(): Promise<void> {
       break;
     }
 
+    case 'install-claude': {
+      console.log('Installing Context Fabric to Claude Desktop...');
+      const configDir = process.platform === 'win32'
+        ? join(process.env.APPDATA || '', 'Claude')
+        : join(homedir(), 'Library', 'Application Support', 'Claude');
+      const configPath = join(configDir, 'claude_desktop_config.json');
+
+      try {
+        if (!existsSync(configDir)) mkdirSync(configDir, { recursive: true });
+        let config: any = { mcpServers: {} };
+        if (existsSync(configPath)) {
+          config = JSON.parse(readFileSync(configPath, 'utf8'));
+        }
+        if (!config.mcpServers) config.mcpServers = {};
+
+        config.mcpServers['context-fabric'] = {
+          command: 'npx',
+          args: ['-y', 'context-fabric']
+        };
+
+        writeFileSync(configPath, JSON.stringify(config, null, 2));
+        console.log('✓ Successfully added context-fabric to ' + configPath);
+        console.log('Restart Claude Desktop to apply changes.');
+      } catch (err) {
+        console.error('Failed to configure Claude Desktop:', err);
+      }
+      break;
+    }
+
     default:
       console.log('Context Fabric — AI Project Continuity Infrastructure');
       console.log('\nCommands:');
       console.log('  init          Initialise in current git repo');
+      console.log('  install-claude Auto-configure Claude Desktop MCP server');
       console.log('  capture       Manual context capture');
       console.log('  drift         Check for context drift');
       console.log('  query         Generate AI briefing for a query');
