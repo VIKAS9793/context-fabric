@@ -46,6 +46,8 @@ const textFilesToUpdate = [
   'README.md',
   'SECURITY.md',
   'docs/wiki/README.md'
+];
+
 // 5. Autogenerate a CHANGELOG.md entry from git history
 try {
   const lastTag = execSync('git describe --tags --abbrev=0', { encoding: 'utf8' }).trim();
