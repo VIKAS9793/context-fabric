@@ -40,3 +40,6 @@ yarn-error.log*
 # AI agent working directories / caches
 .gemini/
 .cursor/
+
+# Metrics dashboard staging (lives on orphan `metrics` branch only)
+.metrics-staging/

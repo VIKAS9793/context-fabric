@@ -1,0 +1,102 @@
+name: Collect Metrics
+
+on:
+  schedule:
+    - cron: '0 0 * * *'   # Daily at midnight UTC
+  workflow_dispatch:        # Manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout metrics branch
+        uses: actions/checkout@v4
+        with:
+          ref: metrics
+          fetch-depth: 1
+
+      - name: Collect npm download stats
+        id: npm
+        run: |
+          DAILY=$(curl -sf "https://api.npmjs.org/downloads/point/last-day/context-fabric" | jq '.downloads // 0')
+          WEEKLY=$(curl -sf "https://api.npmjs.org/downloads/point/last-week/context-fabric" | jq '.downloads // 0')
+          MONTHLY=$(curl -sf "https://api.npmjs.org/downloads/point/last-month/context-fabric" | jq '.downloads // 0')
+
+          # Cumulative total via range query
+          START="2025-01-01"
+          END=$(date -u +%Y-%m-%d)
+          TOTAL=$(curl -sf "https://api.npmjs.org/downloads/range/${START}:${END}/context-fabric" \
+            | jq '[.downloads[].downloads] | add // 0')
+
+          echo "daily=${DAILY}" >> "$GITHUB_OUTPUT"
+          echo "weekly=${WEEKLY}" >> "$GITHUB_OUTPUT"
+          echo "monthly=${MONTHLY}" >> "$GITHUB_OUTPUT"
+          echo "total=${TOTAL}" >> "$GITHUB_OUTPUT"
+
+      - name: Collect GitHub stats
+        id: github
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          REPO="VIKAS9793/context-fabric"
+
+          REPO_DATA=$(gh api "repos/$REPO" 2>/dev/null || echo '{}')
+          STARS=$(echo "$REPO_DATA" | jq '.stargazers_count // 0')
+          FORKS=$(echo "$REPO_DATA" | jq '.forks_count // 0')
+          ISSUES=$(echo "$REPO_DATA" | jq '.open_issues_count // 0')
+
+          CLONES=$(gh api "repos/$REPO/traffic/clones" 2>/dev/null | jq '.count // 0')
+          VISITORS=$(gh api "repos/$REPO/traffic/views" 2>/dev/null | jq '.uniques // 0')
+
+          echo "stars=${STARS}" >> "$GITHUB_OUTPUT"
+          echo "forks=${FORKS}" >> "$GITHUB_OUTPUT"
+          echo "issues=${ISSUES}" >> "$GITHUB_OUTPUT"
+          echo "clones=${CLONES}" >> "$GITHUB_OUTPUT"
+          echo "visitors=${VISITORS}" >> "$GITHUB_OUTPUT"
+
+      - name: Update metrics data
+        run: |
+          DATE=$(date -u +%Y-%m-%d)
+          TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          NEW_ENTRY=$(jq -n \
+            --arg date "$DATE" \
+            --argjson npm_daily "${{ steps.npm.outputs.daily }}" \
+            --argjson npm_weekly "${{ steps.npm.outputs.weekly }}" \
+            --argjson npm_monthly "${{ steps.npm.outputs.monthly }}" \
+            --argjson npm_total "${{ steps.npm.outputs.total }}" \
+            --argjson github_stars "${{ steps.github.outputs.stars }}" \
+            --argjson github_forks "${{ steps.github.outputs.forks }}" \
+            --argjson github_open_issues "${{ steps.github.outputs.issues }}" \
+            --argjson github_clones_14d "${{ steps.github.outputs.clones }}" \
+            --argjson github_unique_visitors_14d "${{ steps.github.outputs.visitors }}" \
+            '{
+              date: $date,
+              npm_daily: $npm_daily,
+              npm_weekly: $npm_weekly,
+              npm_monthly: $npm_monthly,
+              npm_total: $npm_total,
+              github_stars: $github_stars,
+              github_forks: $github_forks,
+              github_open_issues: $github_open_issues,
+              github_clones_14d: $github_clones_14d,
+              github_unique_visitors_14d: $github_unique_visitors_14d
+            }')
+
+          # Deduplicate by date, then append
+          jq --argjson entry "$NEW_ENTRY" --arg ts "$TIMESTAMP" '
+            .entries = ([.entries[] | select(.date != $entry.date)] + [$entry])
+            | .entries |= sort_by(.date)
+            | .last_updated = $ts
+          ' metrics-data.json > tmp.json && mv tmp.json metrics-data.json
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add metrics-data.json
+          git diff --cached --quiet || git commit -m "metrics: $(date -u +%Y-%m-%d) data collection"
+          git push origin metrics
