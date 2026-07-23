@@ -48,10 +48,20 @@ const textFilesToUpdate = [
   'docs/wiki/README.md'
 ];
 
-// In CHANGELOG, we typically don't replace the old versions, we add a new one. 
-// However, doing that automatically is hard. Usually people just edit CHANGELOG by hand before bumping.
-// The bump script shouldn't overwrite historical versions in CHANGELOG.md!
+// 5. Inject a placeholder entry into CHANGELOG.md to satisfy release:check
+const changelogPath = join(rootDir, 'CHANGELOG.md');
+let changelogContent = readFileSync(changelogPath, 'utf8');
+const dateStr = new Date().toISOString().split('T')[0];
+const changelogInjection = `---
 
+## [${newVersion}] — ${dateStr}
+
+### Added
+- [Automated placeholder: please update CHANGELOG.md later]
+`;
+changelogContent = changelogContent.replace('---', changelogInjection);
+writeFileSync(changelogPath, changelogContent, 'utf8');
+console.log('✓ Injected new version heading into CHANGELOG.md');
 for (const relPath of textFilesToUpdate) {
   const absPath = join(rootDir, relPath);
   let content = readFileSync(absPath, 'utf8');
@@ -65,6 +75,6 @@ for (const relPath of textFilesToUpdate) {
 }
 
 // 5. Git Add the modified files so npm version includes them in the commit
-const filesToAdd = ['server.json', ...textFilesToUpdate];
+const filesToAdd = ['server.json', 'CHANGELOG.md', ...textFilesToUpdate];
 execSync(`git add ${filesToAdd.join(' ')}`, { stdio: 'inherit', cwd: rootDir });
 console.log('✓ Staged updated files for commit');

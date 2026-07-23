@@ -7,6 +7,13 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.2.2] — 2026-07-23
+
+### Fixed
+- Fixed high and moderate vulnerabilities in npm dependencies by updating `package-lock.json`.
+- Added automated `sync-versions.mjs` script to ensure version consistency across all files.
+
+
 ## [1.2.1] — 2026-07-23
 
 ### Added
