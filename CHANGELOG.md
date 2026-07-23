@@ -7,6 +7,22 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.1.0] — 2026-07-23
+
+### Added
+- All five MCP tools migrated from the deprecated `server.tool()` call to `server.registerTool()`, adding `title`, `annotations` (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`), and `outputSchema` + `structuredContent` on `cf_capture`, `cf_drift`, `cf_health`, and `cf_log_decision`. Text `content` output is unchanged for every tool — this is additive, not a breaking change, for any client that hasn't adopted structured output.
+- `tests/mcp-server.test.ts`: a protocol-level regression test that spawns the built server and drives it with a real `@modelcontextprotocol/sdk` client over stdio, verifying tool annotations, outputSchema presence/absence, and `structuredContent` shape. Closes a real gap — `src/index.ts` is intentionally excluded from coverage thresholds (entry point, not logic) but had zero automated verification of its actual wire behavior; the existing CI "Smoke Test" step only exercises `cli.js init`, never a single MCP tool call.
+- `pretest` script so `npm test` alone always builds first (the new protocol test requires `dist/index.js`); does not run before `test:watch`.
+
+### Fixed
+- `MODEL_CONTEXT_SIZES` in `src/types.ts` was last verified 22 March 2026 and was missing Claude Sonnet 5, Opus 4.8, and Fable 5 entirely — queries naming those models silently fell back to the 200K `'default'` budget instead of their actual 1M-token window. Also corrected `claude-opus-4-6` and `claude-sonnet-4-6`, which were still pinned to the pre-GA 200K conservative default from when the 1M context window was beta-gated; both are now GA at 1M on the API. `claude-sonnet-4-5` and the GPT/Gemini entries were not reverified this pass and are flagged as such in-source rather than left silently stale.
+
+### Notes
+- `cf_query`'s `readOnlyHint` is `false`, not `true` — it calls `ensureHeadCaptured()`, which can trigger a write via `runWatcher()` when HEAD isn't already captured. Marking it read-only would have been a false signal to any client using annotations to decide what to auto-approve.
+- `cf_query` deliberately has no `outputSchema`. The briefing is prose for injection into an agent's context window, not a data structure any known consumer parses — forcing structured output here would constrain the format for no present benefit.
+- `cf_drift`'s `structuredContent` mirrors the current text output (counts only), not the full `StaleEntry[]` list available on `DriftReport`. Exposing per-file stale entries is a separate scope decision with its own payload-size and capability implications — not bundled into this release.
+- `better-sqlite3` 13.0.0 (N-API rewrite, drops the deprecated `prebuild-install`) released 2026-07-21, two days before this release. Deliberately not taken here — holding for the ecosystem to shake out day-one prebuilt-binary gaps on less common platform/arch combinations before it goes through the pinned-dependency manual-review process in `.github/dependabot.yml`.
+
 ## [1.0.7] — 2026-04-23
 
 ### Fixed

@@ -4,8 +4,8 @@
 
 | Version | Supported |
 |---|---|
-| 1.0.7 (current) | Yes |
-| 1.0.5 | Yes — security fixes only |
+| 1.1.0 (current) | Yes |
+| 1.0.7 | Yes — security fixes only |
 
 ---
 

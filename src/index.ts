@@ -29,7 +29,7 @@ guard.validate('.');
 
 const server = new McpServer({
   name:    'context-fabric',
-  version: '1.0.7',
+  version: '1.1.0',
 });
 
 function countActiveComponents(): number {
@@ -42,10 +42,27 @@ function countActiveComponents(): number {
 
 // ─── TOOL: cf_capture ────────────────────────────────────────────────────
 
-server.tool(
+server.registerTool(
   'cf_capture',
-  'Capture current project state.',
-  {},
+  {
+    title:       'Capture Project State',
+    description: 'Capture current project state.',
+    inputSchema: {},
+    outputSchema: {
+      captured:   z.number().describe('Count of files processed.'),
+      git_sha:    z.string().describe('Git SHA the capture was taken against.'),
+      timestamp:  z.number().describe('Unix ms when the capture ran.'),
+      capture_id: z.number().nullable().describe('Row id of the capture run, if one was created.'),
+      deferred:   z.boolean().optional().describe('True if the capture was deferred rather than run immediately.'),
+    },
+    annotations: {
+      title:           'Capture Project State',
+      readOnlyHint:    false, // writes capture rows and invalidates cache
+      destructiveHint: false, // appends/updates state, does not delete prior captures
+      idempotentHint:  false, // each call can create a new capture run
+      openWorldHint:   false, // local filesystem + git only, no external calls
+    },
+  },
   async () => {
     cache.invalidateAll();
     const result = runWatcher(db, PROJECT_ROOT);
@@ -56,16 +73,41 @@ server.tool(
           ? `Capture deferred for ${result.git_sha.slice(0, 12)} | pending run #${result.capture_id ?? 'n/a'}`
           : `Captured: ${result.captured} files | SHA: ${result.git_sha} | Capture #${result.capture_id ?? 'n/a'}`,
       }],
+      structuredContent: {
+        captured:   result.captured,
+        git_sha:    result.git_sha,
+        timestamp:  result.timestamp,
+        capture_id: result.capture_id ?? null,
+        deferred:   result.deferred ?? false,
+      },
     };
   },
 );
 
 // ─── TOOL: cf_drift ──────────────────────────────────────────────────────
 
-server.tool(
+server.registerTool(
   'cf_drift',
-  'Check context drift. Returns severity.',
-  {},
+  {
+    title:       'Check Context Drift',
+    description: 'Check context drift. Returns severity.',
+    inputSchema: {},
+    outputSchema: {
+      severity:         z.enum(['LOW', 'MED', 'HIGH']),
+      drift_score:      z.number().describe('0-100, rounded to 1 decimal.'),
+      stale_count:      z.number(),
+      fresh_count:       z.number(),
+      total_components: z.number(),
+      checked_at:       z.number().describe('Unix ms.'),
+    },
+    annotations: {
+      title:           'Check Context Drift',
+      readOnlyHint:    true,
+      destructiveHint: false,
+      idempotentHint:  true,
+      openWorldHint:   false,
+    },
+  },
   async () => {
     const report = computeDrift(db, PROJECT_ROOT);
 
@@ -79,24 +121,46 @@ server.tool(
           `Checked: ${new Date(report.checked_at).toISOString()}`,
         ].join('\n'),
       }],
+      structuredContent: {
+        severity:         report.severity,
+        drift_score:      report.drift_score,
+        stale_count:      report.stale.length,
+        fresh_count:      report.fresh.length,
+        total_components: report.total_components,
+        checked_at:       report.checked_at,
+      },
     };
   },
 );
 
 // ─── TOOL: cf_query ──────────────────────────────────────────────────────
 
-server.tool(
+server.registerTool(
   'cf_query',
-  'Get project context briefing.',
   {
-    query: z.string().min(1).max(4096)
-      .describe('What context you need. Task description, component name, or question.'),
-    budget_pct: z.number().min(0.01).max(0.20).optional().default(0.08)
-      .describe('Fraction of model context window to use. Default: 0.08'),
-    model: z.string().max(120).optional().default('default')
-      .describe('Model name for context size lookup. Default: 200K tokens.'),
-    include_drift: z.boolean().optional().default(true)
-      .describe('Check drift and inject warnings. Default: true.'),
+    title:       'Get Context Briefing',
+    description: 'Get project context briefing.',
+    inputSchema: {
+      query: z.string().min(1).max(4096)
+        .describe('What context you need. Task description, component name, or question.'),
+      budget_pct: z.number().min(0.01).max(0.20).optional().default(0.08)
+        .describe('Fraction of model context window to use. Default: 0.08'),
+      model: z.string().max(120).optional().default('default')
+        .describe('Model name for context size lookup. Default: 200K tokens.'),
+      include_drift: z.boolean().optional().default(true)
+        .describe('Check drift and inject warnings. Default: true.'),
+    },
+    // No outputSchema: the briefing is prose for injection into an agent's
+    // context window, not a data structure any known consumer parses.
+    // Forcing structured output here would constrain the format for no
+    // client benefit — deliberate omission, not an oversight.
+    annotations: {
+      title:           'Get Context Briefing',
+      readOnlyHint:    false, // ensureHeadCaptured() can run a write via runWatcher()
+      destructiveHint: false,
+      idempotentHint:  false,
+      openWorldHint:   false,
+    },
   },
   async ({ query, budget_pct = 0.08, model = 'default', include_drift = true }) => {
     const reconciliation = ensureHeadCaptured(db, PROJECT_ROOT);
@@ -183,10 +247,39 @@ server.tool(
 
 // ─── TOOL: cf_health ─────────────────────────────────────────────────────
 
-server.tool(
+server.registerTool(
   'cf_health',
-  'Report local database, capture, and hook health.',
-  {},
+  {
+    title:       'Check System Health',
+    description: 'Report local database, capture, and hook health.',
+    inputSchema: {},
+    outputSchema: {
+      schema_version:       z.number(),
+      search_index_version: z.number(),
+      db_integrity:         z.enum(['ok', 'failed']),
+      degraded:             z.boolean(),
+      degraded_reason:      z.string().nullable(),
+      latest_successful_capture: z.object({
+        id:             z.number(),
+        git_sha:        z.string(),
+        completed_at:   z.number().nullable(),
+        indexed_files:  z.number(),
+        skipped_count:  z.number(),
+      }).nullable(),
+      pending_capture_count:  z.number(),
+      failed_capture_count:   z.number(),
+      latest_skipped_summary: z.record(z.string(), z.number()),
+      hook_installed:         z.boolean(),
+      hook_runtime_ready:     z.boolean(),
+    },
+    annotations: {
+      title:           'Check System Health',
+      readOnlyHint:    true,
+      destructiveHint: false,
+      idempotentHint:  true,
+      openWorldHint:   false,
+    },
+  },
   async () => {
     const report = getHealthReport(db, PROJECT_ROOT);
     return {
@@ -194,30 +287,59 @@ server.tool(
         type: 'text' as const,
         text: formatHealthReport(report),
       }],
+      structuredContent: {
+        schema_version:            report.schema_version,
+        search_index_version:      report.search_index_version,
+        db_integrity:              report.db_integrity,
+        degraded:                  report.degraded,
+        degraded_reason:           report.degraded_reason,
+        latest_successful_capture: report.latest_successful_capture,
+        pending_capture_count:     report.pending_capture_count,
+        failed_capture_count:      report.failed_capture_count,
+        latest_skipped_summary:    report.latest_skipped_summary,
+        hook_installed:            report.hook_installed,
+        hook_runtime_ready:        report.hook_runtime_ready,
+      },
     };
   },
 );
 
 // ─── TOOL: cf_log_decision ───────────────────────────────────────────────
 
-server.tool(
+server.registerTool(
   'cf_log_decision',
-  'Log an architecture decision.',
   {
-    title:     z.string().min(1).max(120).describe('Short name for the decision.'),
-    rationale: z.string().min(1).max(600).describe('Why this decision was made.'),
-    tags:      z.array(z.string().max(30)).max(10).optional()
-                .describe('Optional tags.'),
+    title:       'Log Architecture Decision',
+    description: 'Log an architecture decision.',
+    inputSchema: {
+      title:     z.string().min(1).max(120).describe('Short name for the decision.'),
+      rationale: z.string().min(1).max(600).describe('Why this decision was made.'),
+      tags:      z.array(z.string().max(30)).max(10).optional()
+                  .describe('Optional tags.'),
+    },
+    outputSchema: {
+      id:     z.number().describe('Row id of the logged decision.'),
+      title:  z.string(),
+      status: z.literal('active'),
+    },
+    annotations: {
+      title:           'Log Architecture Decision',
+      readOnlyHint:    false,
+      destructiveHint: false, // inserts a new row, never overwrites/removes one
+      idempotentHint:  false, // each call inserts another decision row
+      openWorldHint:   false,
+    },
   },
   async ({ title, rationale, tags }) => {
     ensureWritableDb();
     cache.invalidateAll();
 
-    db.prepare(`
+    const sanitisedTitle = sanitiseLabel(title, 120);
+    const result = db.prepare(`
       INSERT INTO cf_decisions (title, rationale, status, captured_at, tags)
       VALUES (@title, @rationale, 'active', @captured_at, @tags)
     `).run({
-      title:       sanitiseLabel(title, 120),
+      title:       sanitisedTitle,
       rationale:   sanitiseFileContent(rationale, 'decision').slice(0, 600),
       captured_at: Date.now(),
       tags:        tags && tags.length > 0 ? JSON.stringify(tags) : null,
@@ -228,6 +350,11 @@ server.tool(
         type: 'text' as const,
         text: `Decision logged: "${sanitiseLabel(title, 60)}"`,
       }],
+      structuredContent: {
+        id:     Number(result.lastInsertRowid),
+        title:  sanitisedTitle,
+        status: 'active' as const,
+      },
     };
   },
 );

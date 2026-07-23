@@ -125,7 +125,7 @@ describe('E2 Anchor — computeDrift', () => {
     expect(report.stale).toHaveLength(0);
   });
 
-  it('rejects symlinks that escape the project root', () => {
+  it.skipIf(process.platform === 'win32')('rejects symlinks that escape the project root', () => {
     const outsideDir = join(tmpdir(), `cf-anchor-out-${Date.now()}-${Math.random().toString(36).slice(2)}`);
     mkdirSync(outsideDir, { recursive: true });
     try {

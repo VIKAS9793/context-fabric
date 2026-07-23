@@ -108,22 +108,30 @@ export interface RouterResult {
 
 // ─── E4 GOVERNOR ───────────────────────────────────────────────────────────
 
-// Verified Model Context Sizes — Updated 22 March 2026
+// Verified Model Context Sizes — Updated 23 July 2026
+// Source: platform.claude.com/docs/en/build-with-claude/context-windows and
+// support.claude.com (API context-window articles), checked 2026-07-23.
+// Anthropic entries only were reverified this pass; GPT/Gemini entries below
+// are carried over unverified from the 22 March 2026 pass and may be stale —
+// flagged here rather than silently left as if current.
 export const MODEL_CONTEXT_SIZES: Record<string, number> = {
   // Anthropic
-  'claude-opus-4-6':            200_000,
-  'claude-sonnet-4-6':          200_000,   // 1M in beta, using 200K safe default
-  'claude-sonnet-4-5':          200_000,
-  'claude-haiku-4-5-20251001':  200_000,
+  'claude-opus-4-8':            1_000_000,
+  'claude-sonnet-5':            1_000_000,
+  'claude-fable-5':             1_000_000,
+  'claude-opus-4-6':            1_000_000,  // GA on the API as of this pass — no longer beta-gated
+  'claude-sonnet-4-6':          1_000_000,  // GA on the API as of this pass — no longer beta-gated
+  'claude-sonnet-4-5':            200_000,  // not reverified this pass
+  'claude-haiku-4-5-20251001':    200_000,
   
-  // OpenAI
+  // OpenAI — not reverified this pass, carried over from 22 March 2026
   'gpt-5.4':                  1_050_000,
   'gpt-5.4-mini':             1_050_000,
   'gpt-5.4-nano':             1_050_000,
   'gpt-5.4-pro':              1_050_000,
   'gpt-4o':                     128_000,
   
-  // Google
+  // Google — not reverified this pass, carried over from 22 March 2026
   'gemini-3.1-pro-preview':   1_000_000,
   'gemini-3-flash':           1_000_000,
   'gemini-2.5-pro':           1_000_000,

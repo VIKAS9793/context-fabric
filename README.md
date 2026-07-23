@@ -15,7 +15,7 @@
 
 ---
 
-Current stable release: `v1.0.7`. See [CHANGELOG.md](CHANGELOG.md) for the release notes.
+Current stable release: `v1.1.0`. See [CHANGELOG.md](CHANGELOG.md) for the release notes.
 
 ### **Official Registry Support**
 Context Fabric is configured for official inclusion in the **Model Context Protocol (MCP) Registry**. 
@@ -219,6 +219,8 @@ Full FAQ: [docs/FAQ.md](docs/FAQ.md)
 | `cf_query` | E2 + E3 + E4 + E5 | Full context briefing for the current task |
 | `cf_health` | Local health | Report database, capture, hook, and search index health |
 | `cf_log_decision` | Storage | Persist an architecture decision across sessions |
+
+All tools expose MCP `annotations` (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`) as of `1.1.0`. `cf_capture`, `cf_drift`, `cf_health`, and `cf_log_decision` also return `structuredContent` alongside their text output; `cf_query` intentionally does not, since its output is prose meant for injection into an agent's context window rather than a data structure. Note that `cf_query` is not read-only — it can trigger a capture internally when HEAD isn't already indexed.
 
 ---
 

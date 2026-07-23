@@ -77,7 +77,7 @@ describe('PathGuard — traversal rejection', () => {
 });
 
 describe('PathGuard — symlink escape', () => {
-  it('rejects a symlink inside the project root that targets a file outside it', () => {
+  it.skipIf(process.platform === 'win32')('rejects a symlink inside the project root that targets a file outside it', () => {
     const outsideDir = join(
       tmpdir(),
       `cf-sec-out-${Date.now()}-${Math.random().toString(36).slice(2)}`,
