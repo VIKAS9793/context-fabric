@@ -12,6 +12,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D22.0.0_--_24.x-brightgreen?labelColor=0d1117)](https://nodejs.org)
 [![MCP SDK](https://img.shields.io/badge/MCP_SDK-1.29.0-7c3aed?labelColor=0d1117)](https://modelcontextprotocol.io)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5%2B-3178c6?labelColor=0d1117)](https://typescriptlang.org)
+[![Analytics Dashboard](https://img.shields.io/badge/📊_Analytics-Dashboard-f59e0b?labelColor=0d1117)](https://vikas9793.github.io/context-fabric/)
 
 ---
 
