@@ -46,22 +46,47 @@ const textFilesToUpdate = [
   'README.md',
   'SECURITY.md',
   'docs/wiki/README.md'
-];
+// 5. Autogenerate a CHANGELOG.md entry from git history
+try {
+  const lastTag = execSync('git describe --tags --abbrev=0', { encoding: 'utf8' }).trim();
+  const rawLog = execSync(`git log ${lastTag}..HEAD --pretty=format:"- %s"`, { encoding: 'utf8' }).trim();
+  
+  let added = [];
+  let fixed = [];
+  let other = [];
+  
+  if (rawLog) {
+    const commits = rawLog.split('\n');
+    for (const commit of commits) {
+      if (commit.toLowerCase().includes('fix') || commit.toLowerCase().includes('bug')) {
+        fixed.push(commit);
+      } else if (commit.toLowerCase().includes('feat') || commit.toLowerCase().includes('add')) {
+        added.push(commit);
+      } else {
+        other.push(commit);
+      }
+    }
+  } else {
+    other.push('- No specific commits found.');
+  }
 
-// 5. Inject a placeholder entry into CHANGELOG.md to satisfy release:check
-const changelogPath = join(rootDir, 'CHANGELOG.md');
-let changelogContent = readFileSync(changelogPath, 'utf8');
-const dateStr = new Date().toISOString().split('T')[0];
-const changelogInjection = `---
+  let changelogInjection = `---
 
-## [${newVersion}] — ${dateStr}
-
-### Added
-- [Automated placeholder: please update CHANGELOG.md later]
+## [${newVersion}] — ${new Date().toISOString().split('T')[0]}
 `;
-changelogContent = changelogContent.replace('---', changelogInjection);
-writeFileSync(changelogPath, changelogContent, 'utf8');
-console.log('✓ Injected new version heading into CHANGELOG.md');
+  if (added.length > 0) changelogInjection += `\n### Added\n${added.join('\n')}\n`;
+  if (fixed.length > 0) changelogInjection += `\n### Fixed\n${fixed.join('\n')}\n`;
+  if (other.length > 0) changelogInjection += `\n### Changes\n${other.join('\n')}\n`;
+
+  const changelogPath = join(rootDir, 'CHANGELOG.md');
+  let changelogContent = readFileSync(changelogPath, 'utf8');
+  changelogContent = changelogContent.replace('---', changelogInjection);
+  writeFileSync(changelogPath, changelogContent, 'utf8');
+  console.log('✓ Auto-generated new version heading in CHANGELOG.md from git history');
+} catch (error) {
+  console.warn('⚠️ Could not generate changelog from git history. Skipping.');
+}
+
 for (const relPath of textFilesToUpdate) {
   const absPath = join(rootDir, relPath);
   let content = readFileSync(absPath, 'utf8');
