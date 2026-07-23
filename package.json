@@ -51,7 +51,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
-    "ci:check": "npm ci && npm run build && npm test && npm run release:check"
+    "ci:check": "npm ci && npm run build && npm test && npm run release:check",
+    "version": "node scripts/sync-versions.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.29.0",
