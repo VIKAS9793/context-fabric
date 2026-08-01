@@ -93,8 +93,8 @@ for (const relPath of textFilesToUpdate) {
   const absPath = join(rootDir, relPath);
   let content = readFileSync(absPath, 'utf8');
   
-  // Create a global regex for the old version, escaping dots
-  const oldVersionRegex = new RegExp(oldVersion.replace(/\./g, '\\.'), 'g');
+  // Create a global regex for the old version, escaping all regex metacharacters
+  const oldVersionRegex = new RegExp(oldVersion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
   content = content.replace(oldVersionRegex, newVersion);
   
   writeFileSync(absPath, content, 'utf8');
